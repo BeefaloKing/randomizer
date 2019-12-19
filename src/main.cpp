@@ -3,6 +3,7 @@
 #include "table.hh"
 #include "utils.hh"
 #include <StormLib.h>
+#include <climits>
 #include <fstream>
 #include <iostream>
 #include <random>

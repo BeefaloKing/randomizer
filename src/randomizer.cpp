@@ -57,6 +57,7 @@ bool Randomizer::scramble(uint32_t seed)
 	}
 
 	std::cout << "\nRandom seed: " << seed << "\n";
+	srand(seed);
 
 	if (cfg.getBool("rand_npc"))
 	{
@@ -86,6 +87,12 @@ bool Randomizer::scramble(uint32_t seed)
 	{
 		std::cout << "Randomizing area entrances.\n";
 		mapLinks();
+	}
+
+	if (cfg.getBool("rand_supers"))
+	{
+		std::cout << "Randomizing super unique spawn locations.\n";
+		supers();
 	}
 
 	return true;
@@ -344,14 +351,14 @@ void Randomizer::mapLinks()
 	createTree(vList, tempList, Lock::anya, false); // Stubs not locked by Anya now always > 1
 	createTree(vList, uList, Lock::none, false);
 
-	uList.assign(SList::ActFiveQuest, std::end(SList::ActFiveQuest));
-	createTree(vList, uList, Lock::anya, false);
-
 	uList.assign(SList::ActFiveLockA, std::end(SList::ActFiveLockA));
 	createTree(vList, uList, Lock::anya, true);
 
 	uList.assign(SList::ActFiveLockB, std::end(SList::ActFiveLockB));
 	createTree(vList, uList, Lock::ancients, true);
+
+	uList.assign(SList::ActFiveQuest, std::end(SList::ActFiveQuest));
+	createTree(vList, uList, Lock::anya, false);
 
 	uList.assign(SList::ActFiveEnds, std::end(SList::ActFiveEnds));
 	createTree(vList, uList, Lock::none, false);
@@ -449,7 +456,13 @@ void Randomizer::createLoops(std::vector<Stub> &vList, size_t count)
 		Stub &start = vList[sIndex];
 		Stub &dest = vList[dIndex];
 		// Retry if selected edge is a self loop or connects locked/unlocked areas together
-		if (start.node == dest.node || start.locks != dest.locks)
+		// Prefer to not link between the same node, but if not possible fallback to levelId
+		if (retryCount < 32 && (start.node == dest.node || start.locks != dest.locks))
+		{
+			retryCount++;
+			continue;
+		}
+		else if (retryCount >= 32 && (start.levelId == dest.levelId || start.locks != dest.locks))
 		{
 			retryCount++;
 			continue;
@@ -504,5 +517,131 @@ void Randomizer::linkStubs(Stub &start, Stub &dest)
 	for (size_t i = 0; dest.visList[i] != 255; i++)
 	{
 		newLevels.at(dRow, visCol + dest.visList[i]) = std::to_string(start.levelId);
+	}
+}
+
+void Randomizer::supers()
+{
+	Table &pFile = newFiles[File::MonPreset];
+	size_t placeCol;
+	if (!pFile.findHeader("Place", placeCol))
+	{
+		printError(EC::badMpqFormat, pFile.name());
+		return;
+	}
+	bool doBoss = cfg.getBool("super_actboss");
+	bool anyAct = cfg.getBool("super_anyact");
+
+	size_t andariel = 9;
+	std::vector<size_t> actOne = {12, 34, 35, 36, 37, 38, 39, 40, 41, 43, 44};
+	size_t duriel = 66;
+	std::vector<size_t> actTwo = {64, 65, 93, 94, 95, 96, 97, 98, 99, 100};
+	size_t mephisto = 128;
+	std::vector<size_t> actThreeHC = {139, 140, 142};
+	std::vector<size_t>	actThreeA = {134, 135, 136};
+	std::vector<size_t> actThreeB = {137, 138, 141, 143, 144};
+	std::vector<size_t> actFour = {158, 172};
+	std::vector<size_t> actFive = {179, 200, 208, 209, 210, 211, 212, 213, 216, 219};
+	std::vector<size_t> ancients = {197, 198, 199};
+
+	std::vector<size_t> pool; // Used when anyAct == true to keep track of placements
+	std::vector<std::string> values; // Strings read from pFile
+	std::vector<std::string> rValues; // "Restricted" values with specific placement restrictions
+
+	pFile.getColValues(actOne, placeCol, values);
+	if (doBoss)
+	{
+		actOne.push_back(andariel);
+		rValues.push_back(pFile.at(andariel, placeCol));
+		shuffleHelper(pFile, placeCol, actOne, rValues);
+	}
+	if (!anyAct)
+	{
+		shuffleHelper(pFile, placeCol, actOne, values);
+	}
+
+	pFile.getColValues(actTwo, placeCol, values);
+	if (doBoss)
+	{
+		actTwo.push_back(duriel);
+		rValues.push_back(pFile.at(duriel, placeCol));
+		shuffleHelper(pFile, placeCol, actTwo, rValues);
+	}
+	if (!anyAct)
+	{
+		shuffleHelper(pFile, placeCol, actTwo, values);
+	}
+
+	// Guarantee High Council accessible before placing the rest of Act 3
+	pFile.getColValues(actThreeA, placeCol, values);
+	actThreeA.insert(actThreeA.begin(), actThreeHC.begin(), actThreeHC.end());
+	pFile.getColValues(actThreeHC, placeCol, rValues);
+	if (!anyAct)
+	{
+		shuffleHelper(pFile, placeCol, actThreeA, rValues);
+	}
+	else // if (anyAct) Place High Council anywhere previously visited (including A1 and A2)
+	{
+		pool.insert(pool.end(), actOne.begin(), actOne.end());
+		pool.insert(pool.end(), actTwo.begin(), actTwo.end());
+		pool.insert(pool.end(), actThreeA.begin(), actThreeA.end());
+		shuffleHelper(pFile, placeCol, pool, rValues);
+		// actThreeB may not be accessible before Travincal
+		// Added here after High Council have already been placed
+		pool.insert(pool.end(), actThreeB.begin(), actThreeB.end());
+	}
+
+	actThreeA.insert(actThreeA.end(), actThreeB.begin(), actThreeB.end());
+	pFile.getColValues(actThreeB, placeCol, values);
+	if (doBoss)
+	{
+		actThreeA.push_back(mephisto);
+		rValues.push_back(pFile.at(mephisto, placeCol));
+		shuffleHelper(pFile, placeCol, actThreeA, rValues);
+	}
+	if (!anyAct)
+	{
+		shuffleHelper(pFile, placeCol, actThreeA, values);
+	}
+
+	// No need to check doBoss since Diablo and Baal cannot be moved regardless
+	if (!anyAct)
+	{
+		pFile.getColValues(actFour, placeCol, values);
+		shuffleHelper(pFile, placeCol, actFour, values);
+
+		pFile.getColValues(actFive, placeCol, values);
+		shuffleHelper(pFile, placeCol, actFive, values);
+	}
+	else // if (anyAct)
+	{
+		// Here we finally place all super uniques with no placement restrictions
+		pFile.getColValues(actFour, placeCol, values);
+		pFile.getColValues(actFive, placeCol, values);
+
+		shuffleHelper(pFile, placeCol, pool, values);
+		shuffleHelper(pFile, placeCol, actFour, values);
+		shuffleHelper(pFile, placeCol, actFive, values);
+	}
+
+	// Randomize permutation of ancient statues
+	pFile.getColValues(ancients, placeCol, values);
+	shuffleHelper(pFile, placeCol, ancients, values);
+
+}
+
+void Randomizer::shuffleHelper(Table &file, size_t col, std::vector<size_t> &rows,
+	std::vector<std::string> &values)
+{
+	while (rows.size() > 0 && values.size() > 0)
+	{
+		size_t &row = rows.at(rand() % rows.size());
+		std::string &value = values.at(rand() % values.size());
+		file.at(row, col) = value;
+
+		row = rows.back();
+		rows.pop_back();
+		value = values.back();
+		values.pop_back();
 	}
 }

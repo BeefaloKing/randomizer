@@ -8,6 +8,7 @@
 
 Table::Table()
 {
+	fileName = "";
 	body = nullptr;
 	numRows = 0;
 	numCols = 0;
@@ -15,6 +16,7 @@ Table::Table()
 
 Table::Table(const Table &other)
 {
+	fileName = other.fileName;
 	headers = other.headers;
 	numRows = other.numRows;
 	numCols = other.numCols;
@@ -35,6 +37,7 @@ Table &Table::operator=(const Table &other)
 	if (this != &other)
 	{
 		close();
+		fileName = other.fileName;
 		headers = other.headers;
 		numRows = other.numRows;
 		numCols = other.numCols;
@@ -63,6 +66,7 @@ bool Table::open(std::string file)
 {
 	bool success = true;
 
+	fileName = file;
 	std::fstream csv;
 	csv.open(file, std::fstream::in);
 	if (csv.good())
@@ -144,6 +148,7 @@ bool Table::open(std::string file)
 
 void Table::close()
 {
+	fileName = "";
 	headers.clear();
 	if (body)
 	{
@@ -165,6 +170,15 @@ bool Table::findHeader(const std::string &header, size_t &pos)
 		}
 	}
 	return false;
+}
+
+void Table::getColValues(const std::vector<size_t> &rows, size_t col,
+	std::vector<std::string> &values)
+{
+	for (size_t i = 0; i < rows.size(); i++)
+	{
+		values.push_back(at(rows.at(i), col));
+	}
 }
 
 void Table::print(std::iostream &out)

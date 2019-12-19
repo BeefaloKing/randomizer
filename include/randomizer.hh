@@ -58,6 +58,10 @@ private:
 	void createLoops(std::vector<Stub> &vList, size_t count);
 	void linkStubs(Stub &start, Stub &dest);
 
+	void supers();
+	void shuffleHelper(Table &file, size_t col, std::vector<size_t> &rows,
+		std::vector<std::string> &values);
+
 	Config &cfg;
 	std::string vanillaPath;
 	std::string moddedPath;

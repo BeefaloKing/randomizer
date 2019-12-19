@@ -57,6 +57,19 @@ If random_stairs is enabled, the walk from travincal to Durance of Hate Level 3 
 lack luster due to limited options and restrictions placed on the random map links.
 Enable to force at least one additional area placed after Travincal.
 
+	rand_supers
+true/false (Default=false)
+Enable to randomize all super unique spawn locations.
+
+	super_anyact
+true/false (Default=false)
+If rand_supers is enabled, enable to allow spawn locations to be ranomized between acts.
+
+	super_actboss
+true/false (Default=false)
+If rand_supers is enabled, enable to also randomize act boss spawn locations (where possible).
+Act bosses will always appear in their own act regardless of the super_anyact setting.
+
 --------------------------------------------------
  External
 --------------------------------------------------

@@ -144,5 +144,8 @@ void Config::exportDefault(std::fstream &file)
 	"rand_wpmenu=false\n"
 	"rand_music=false\n\n"
 	"rand_maplinks=false\n"
-	"force_longmeph=false\n";
+	"force_longmeph=false\n\n"
+	"rand_supers=false\n"
+	"super_anyact=false\n"
+	"super_actboss=false\n";
 }
