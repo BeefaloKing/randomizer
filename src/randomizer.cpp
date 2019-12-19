@@ -228,48 +228,33 @@ void Randomizer::mapNames()
 
 void Randomizer::waypoints()
 {
-	Table &levels = files[File::Levels];
 	Table &newLevels = newFiles[File::Levels];
 	size_t actCol;
 	size_t wpCol;
-	if (!levels.findHeader("Waypoint", wpCol) || !levels.findHeader("Act", actCol))
+	if (!newLevels.findHeader("Waypoint", wpCol) || !newLevels.findHeader("Act", actCol))
 	{
 		printError(EC::badMpqFormat, FILE_NAME[File::Levels]);
 		return;
 	}
 
-	std::vector<size_t> oldIndexList;
-	std::vector<size_t> newIndexList;
+	std::vector<size_t> rows;
+	std::vector<std::string> wps;
 
 	for (size_t act = 0; act < 5; act++)
 	{
-		for (size_t row = 0; row < levels.rows(); row++)
+		for (size_t row = 0; row < newLevels.rows(); row++)
 		{
-			std::string &wpEntry = levels.at(row, wpCol);
+			std::string &wpEntry = newLevels.at(row, wpCol);
 			// Hardcoded checks to exclude town wp's from being randomized
-			if (levels.at(row, actCol) == std::to_string(act) && wpEntry != "255" &&
+			if (newLevels.at(row, actCol) == std::to_string(act) && wpEntry != "255" &&
 				wpEntry != "" && wpEntry != "0" && wpEntry != "9" && wpEntry != "18" &&
 				wpEntry != "27" && wpEntry != "30")
 			{
-				oldIndexList.push_back(row);
-				newIndexList.push_back(row);
+				rows.push_back(row);
+				wps.push_back(wpEntry);
 			}
 		}
-
-		while (!oldIndexList.empty())
-		{
-			size_t listIndex = rand() % oldIndexList.size();
-			size_t oldIndex = oldIndexList.at(listIndex);
-			oldIndexList.at(listIndex) = oldIndexList.back();
-			oldIndexList.pop_back();
-
-			listIndex = rand() % newIndexList.size();
-			size_t newIndex = newIndexList.at(listIndex);
-			newIndexList.at(listIndex) = newIndexList.back();
-			newIndexList.pop_back();
-
-			newLevels.at(newIndex, wpCol) = levels.at(oldIndex, wpCol);
-		}
+		shuffleHelper(newLevels, wpCol, rows, wps);
 	}
 }
 
