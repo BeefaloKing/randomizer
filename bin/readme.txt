@@ -33,6 +33,10 @@ true/false (Default=false)
 Enable to randomize all (possible) town NPC spawn locations.
 Quest NPC's always remain in the same act.
 
+	rand_critters
+true/false (Default=false)
+Enable to randomize critter spawns.
+
 	rand_mapnames
 true/false (Default=false)
 Enable to randomize names displayed for each area.

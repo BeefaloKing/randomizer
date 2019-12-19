@@ -140,6 +140,7 @@ void Config::exportDefault(std::fstream &file)
 	"d2se_mod=Random\n\n"
 	"seed=0\n\n"
 	"rand_npc=false\n"
+	"rand_critters"
 	"rand_mapnames=false\n"
 	"rand_wpmenu=false\n"
 	"rand_music=false\n\n"
