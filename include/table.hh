@@ -15,7 +15,11 @@ public:
 	void close();
 
 	bool findHeader(const std::string &header, size_t &pos);
+	void findRows(size_t col, const std::string &lookup, std::vector<size_t> &rows);
 	void getColValues(const std::vector<size_t> &rows, size_t col,
+		std::vector<std::string> &values);
+	// Overload expects multiple cols and will return tab delimited entires in values
+	void getColValues(const std::vector<size_t> &rows, const std::vector<size_t> &cols,
 		std::vector<std::string> &values);
 	void print(std::iostream &out);
 

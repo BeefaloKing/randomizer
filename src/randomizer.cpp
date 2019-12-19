@@ -3,6 +3,7 @@
 #include "stublists.hh"
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <cstdlib>
 #include <vector>
 
@@ -14,11 +15,7 @@ Randomizer::Randomizer(std::string vanillaPath, std::string moddedPath) :
 	isGood = true;
 	for (size_t i = 0; i < File::TOTAL_FILES; i++)
 	{
-		if (files[i].open(vanillaPath + "/" + FILE_NAME[i]))
-		{
-			newFiles[i] = files[i];
-		}
-		else
+		if (!newFiles[i].open(vanillaPath + "/" + FILE_NAME[i]))
 		{
 			isGood = false;
 		}
@@ -93,6 +90,12 @@ bool Randomizer::scramble(uint32_t seed)
 	{
 		std::cout << "Randomizing super unique spawn locations.\n";
 		supers();
+	}
+
+	if (cfg.getBool("rand_critters"))
+	{
+		std::cout << "Randomizing critter spawns.\n";
+		critters();
 	}
 
 	return true;
@@ -178,8 +181,7 @@ void Randomizer::music()
 
 void Randomizer::mapNames()
 {
-	Table &levels = files[File::Levels];
-	Table &newLevels = newFiles[File::Levels];
+	Table &levels = newFiles[File::Levels];
 	size_t actCol;
 	size_t nameCol;
 	size_t warpCol;
@@ -190,39 +192,32 @@ void Randomizer::mapNames()
 		printError(EC::badMpqFormat, FILE_NAME[File::Levels]);
 		return;
 	}
+	std::vector<size_t> cols = {nameCol, warpCol, entryCol};
 
-	std::vector<size_t> oldIndexList;
-	std::vector<size_t> newIndexList;
+	std::vector<size_t> rows;
+	std::vector<std::string> values;
 
 	for (size_t act = 0; act < 5; act++)
 	{
-		for (size_t row = 0; row < levels.rows(); row++)
+		levels.findRows(actCol, std::to_string(act), rows);
+		if (act == 0)
 		{
-			// Hardcoded check to exclude den since it's name is controlled by quest
-			if (levels.at(row, actCol) == std::to_string(act) && levels.at(row, nameCol) != "" &&
-				levels.at(row, nameCol) != "Den of Evil")
+			size_t i = 0;
+			while (i < rows.size())
 			{
-				oldIndexList.push_back(row);
-				newIndexList.push_back(row);
+				if (levels.at(rows.at(i), nameCol) == "" || levels.at(rows.at(i), nameCol) == "Den of Evil")
+				{
+					rows.at(i) = rows.back();
+					rows.pop_back();
+				}
+				else
+				{
+					i++;
+				}
 			}
 		}
-
-		while (!oldIndexList.empty())
-		{
-			size_t listIndex = rand() % oldIndexList.size();
-			size_t oldIndex = oldIndexList.at(listIndex);
-			oldIndexList.at(listIndex) = oldIndexList.back();
-			oldIndexList.pop_back();
-
-			listIndex = rand() % newIndexList.size();
-			size_t newIndex = newIndexList.at(listIndex);
-			newIndexList.at(listIndex) = newIndexList.back();
-			newIndexList.pop_back();
-
-			newLevels.at(newIndex, nameCol) = levels.at(oldIndex, nameCol);
-			newLevels.at(newIndex, warpCol) = levels.at(oldIndex, warpCol);
-			newLevels.at(newIndex, entryCol) = levels.at(oldIndex, entryCol);
-		}
+		levels.getColValues(rows, cols, values);
+		shuffle(levels, cols, rows, values);
 	}
 }
 
@@ -254,7 +249,7 @@ void Randomizer::waypoints()
 				wps.push_back(wpEntry);
 			}
 		}
-		shuffleHelper(newLevels, wpCol, rows, wps);
+		shuffle(newLevels, wpCol, rows, wps);
 	}
 }
 
@@ -538,11 +533,11 @@ void Randomizer::supers()
 	{
 		actOne.push_back(andariel);
 		rValues.push_back(pFile.at(andariel, placeCol));
-		shuffleHelper(pFile, placeCol, actOne, rValues);
+		shuffle(pFile, placeCol, actOne, rValues);
 	}
 	if (!anyAct)
 	{
-		shuffleHelper(pFile, placeCol, actOne, values);
+		shuffle(pFile, placeCol, actOne, values);
 	}
 
 	pFile.getColValues(actTwo, placeCol, values);
@@ -550,11 +545,11 @@ void Randomizer::supers()
 	{
 		actTwo.push_back(duriel);
 		rValues.push_back(pFile.at(duriel, placeCol));
-		shuffleHelper(pFile, placeCol, actTwo, rValues);
+		shuffle(pFile, placeCol, actTwo, rValues);
 	}
 	if (!anyAct)
 	{
-		shuffleHelper(pFile, placeCol, actTwo, values);
+		shuffle(pFile, placeCol, actTwo, values);
 	}
 
 	// Guarantee High Council accessible before placing the rest of Act 3
@@ -563,14 +558,14 @@ void Randomizer::supers()
 	pFile.getColValues(actThreeHC, placeCol, rValues);
 	if (!anyAct)
 	{
-		shuffleHelper(pFile, placeCol, actThreeA, rValues);
+		shuffle(pFile, placeCol, actThreeA, rValues);
 	}
 	else // if (anyAct) Place High Council anywhere previously visited (including A1 and A2)
 	{
 		pool.insert(pool.end(), actOne.begin(), actOne.end());
 		pool.insert(pool.end(), actTwo.begin(), actTwo.end());
 		pool.insert(pool.end(), actThreeA.begin(), actThreeA.end());
-		shuffleHelper(pFile, placeCol, pool, rValues);
+		shuffle(pFile, placeCol, pool, rValues);
 		// actThreeB may not be accessible before Travincal
 		// Added here after High Council have already been placed
 		pool.insert(pool.end(), actThreeB.begin(), actThreeB.end());
@@ -582,21 +577,21 @@ void Randomizer::supers()
 	{
 		actThreeA.push_back(mephisto);
 		rValues.push_back(pFile.at(mephisto, placeCol));
-		shuffleHelper(pFile, placeCol, actThreeA, rValues);
+		shuffle(pFile, placeCol, actThreeA, rValues);
 	}
 	if (!anyAct)
 	{
-		shuffleHelper(pFile, placeCol, actThreeA, values);
+		shuffle(pFile, placeCol, actThreeA, values);
 	}
 
 	// No need to check doBoss since Diablo and Baal cannot be moved regardless
 	if (!anyAct)
 	{
 		pFile.getColValues(actFour, placeCol, values);
-		shuffleHelper(pFile, placeCol, actFour, values);
+		shuffle(pFile, placeCol, actFour, values);
 
 		pFile.getColValues(actFive, placeCol, values);
-		shuffleHelper(pFile, placeCol, actFive, values);
+		shuffle(pFile, placeCol, actFive, values);
 	}
 	else // if (anyAct)
 	{
@@ -604,21 +599,56 @@ void Randomizer::supers()
 		pFile.getColValues(actFour, placeCol, values);
 		pFile.getColValues(actFive, placeCol, values);
 
-		shuffleHelper(pFile, placeCol, pool, values);
-		shuffleHelper(pFile, placeCol, actFour, values);
-		shuffleHelper(pFile, placeCol, actFive, values);
+		shuffle(pFile, placeCol, pool, values);
+		shuffle(pFile, placeCol, actFour, values);
+		shuffle(pFile, placeCol, actFive, values);
 	}
 
 	// Randomize permutation of ancient statues
 	pFile.getColValues(ancients, placeCol, values);
-	shuffleHelper(pFile, placeCol, ancients, values);
+	shuffle(pFile, placeCol, ancients, values);
 
 }
 
-void Randomizer::shuffleHelper(Table &file, size_t col, std::vector<size_t> &rows,
+void Randomizer::critters()
+{
+	Table &stats = newFiles[File::monstats2];
+	Table &levels = newFiles[File::Levels];
+	size_t idCol;
+	size_t critterCol;
+	size_t cmonCol;
+	size_t cpctCol;
+	if (!stats.findHeader("Id", idCol) || !stats.findHeader("critter", critterCol))
+	{
+		printError(EC::badMpqFormat, stats.name());
+		return;
+	}
+	if (!levels.findHeader("cmon1", cmonCol) || !levels.findHeader("cpct1", cpctCol))
+	{
+		printError(EC::badMpqFormat, levels.name());
+		return;
+	}
+
+	std::vector<size_t> rows;
+	std::vector<std::string> critters;
+	stats.findRows(critterCol, "1", rows);
+	stats.getColValues(rows, idCol, critters);
+
+	fillStrings(levels, cmonCol, critters);
+	fillStrings(levels, cmonCol + 1, critters);
+	fillStrings(levels, cmonCol + 2, critters);
+	fillStrings(levels, cmonCol + 3, critters);
+
+	fillRange(levels, cpctCol, 1, 100);
+	fillRange(levels, cpctCol + 1, 1, 100);
+	fillRange(levels, cpctCol + 2, 1, 100);
+	fillRange(levels, cpctCol + 3, 1, 100);
+}
+
+void Randomizer::shuffle(Table &file, size_t col, std::vector<size_t> &rows,
 	std::vector<std::string> &values)
 {
-	while (rows.size() > 0 && values.size() > 0)
+	while (!rows.empty() && !values.empty())
 	{
 		size_t &row = rows.at(rand() % rows.size());
 		std::string &value = values.at(rand() % values.size());
@@ -628,5 +658,49 @@ void Randomizer::shuffleHelper(Table &file, size_t col, std::vector<size_t> &row
 		rows.pop_back();
 		value = values.back();
 		values.pop_back();
+	}
+}
+
+void Randomizer::shuffle(Table &file, std::vector<size_t> cols, std::vector<size_t> &rows,
+	std::vector<std::string> &values)
+{
+	while (!rows.empty() && !values.empty())
+	{
+		size_t &row = rows.at(rand() % rows.size());
+		std::string &value = values.at(rand() % values.size());
+		std::stringstream entries{value};
+		std::string entry;
+		for (size_t i = 0; i < cols.size(); i++)
+		{
+			std::getline(entries, entry, '\t');
+			file.at(row, cols.at(i)) = entry;
+		}
+
+		row = rows.back();
+		rows.pop_back();
+		value = values.back();
+		values.pop_back();
+	}
+}
+
+void Randomizer::fillStrings(Table &file, size_t col, const std::vector<std::string> &values)
+{
+	for (size_t i = 0; i < file.rows(); i++)
+	{
+		if (file.at(i, 0) != "Expansion")
+		{
+			file.at(i, col) = values.at(rand() % values.size());
+		}
+	}
+}
+
+void Randomizer::fillRange(Table &file, size_t col, size_t min, size_t max)
+{
+	for (size_t i = 0; i < file.rows(); i++)
+	{
+		if (file.at(i, 0) != "Expansion")
+		{
+			file.at(i, col) = std::to_string(rand() % (max - min + 1) + min);
+		}
 	}
 }

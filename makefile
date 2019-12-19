@@ -4,7 +4,7 @@ files = src/config.cpp src/main.cpp src/randomizer.cpp src/table.cpp src/utils.c
 .PHONY: all debug release clean
 all: debug
 
-debug: export cxx_flags = -Wall -g -Og
+debug: export cxx_flags = -Wall -g -O0
 
 release: export cxx_flags = -O2
 release: export linker_flags = -Wl,-O,--gc-sections,--strip-all

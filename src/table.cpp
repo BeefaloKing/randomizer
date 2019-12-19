@@ -78,11 +78,6 @@ bool Table::open(std::string file)
 		std::getline(csv, line, '\n');
 		if (line.length() > 0)
 		{
-			while (line.back() == '\r')
-			{
-				line.pop_back();
-				line.erase(line.size() - 1);
-			}
 			ssLine.str(line);
 			while(ssLine.good())
 			{
@@ -113,11 +108,6 @@ bool Table::open(std::string file)
 		size_t col = 0;
 		while (csv.good())
 		{
-			while (isspace(line.back()))
-			{
-				line.pop_back();
-				line.erase(line.size() - 1);
-			}
 			ssLine.clear();
 			std::getline(csv, line, '\n');
 			// Skip line if completely empty
@@ -172,12 +162,41 @@ bool Table::findHeader(const std::string &header, size_t &pos)
 	return false;
 }
 
+void Table::findRows(size_t col, const std::string &lookup, std::vector<size_t> &rows)
+{
+	for (size_t i = 0; i < numRows; i++)
+	{
+		if (at(i, col) == lookup)
+		{
+			rows.push_back(i);
+		}
+	}
+}
+
 void Table::getColValues(const std::vector<size_t> &rows, size_t col,
 	std::vector<std::string> &values)
 {
 	for (size_t i = 0; i < rows.size(); i++)
 	{
 		values.push_back(at(rows.at(i), col));
+	}
+}
+
+void Table::getColValues(const std::vector<size_t> &rows, const std::vector<size_t> &cols,
+	std::vector<std::string> &values)
+{
+	for (size_t i = 0; i < rows.size(); i++)
+	{
+		std::string entries;
+		for (size_t j = 0; j < cols.size(); j++)
+		{
+			entries.append(at(rows.at(i), cols.at(j)));
+			if (j < cols.size() - 1)
+			{
+				entries.append("\t");
+			}
+		}
+		values.push_back(entries);
 	}
 }
 
@@ -210,6 +229,7 @@ std::string &Table::at(size_t row, size_t col)
 {
 	if (row < numRows && col < numCols)
 	{
+		// Consider indexing by col * numRows + row
 		size_t offset = row * numCols + col;
 		return body[offset];
 	}

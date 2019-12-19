@@ -12,23 +12,12 @@ namespace File
 	{
 		MonPreset,
 		Levels,
-		skills,
-		skilldesc,
+		monstats2,
 		TOTAL_FILES
 	};
 }
 static const std::string FILE_NAME[File::TOTAL_FILES] = {"MonPreset.txt", "Levels.txt",
-	"skills.txt", "skilldesc.txt"};
-
-namespace Req
-{
-	enum Req
-	{
-		none,
-		before,
-		after
-	};
-}
+	"monstats2.txt"};
 
 class Randomizer
 {
@@ -59,13 +48,21 @@ private:
 	void linkStubs(Stub &start, Stub &dest);
 
 	void supers();
-	void shuffleHelper(Table &file, size_t col, std::vector<size_t> &rows,
+	void critters();
+
+	// Shuffle removes values it uses from both rows and values
+	// If you'd like randomization with replacement, use fillStrings instead
+	void shuffle(Table &file, size_t col, std::vector<size_t> &rows,
 		std::vector<std::string> &values);
+	// Overload expects multiple cols and tab delimited entries in values
+	void shuffle(Table &file, std::vector<size_t> cols, std::vector<size_t> &rows,
+		std::vector<std::string> &values);
+	void fillStrings(Table &file, size_t col, const std::vector<std::string> &values);
+	void fillRange(Table &file, size_t col, size_t min, size_t max);
 
 	Config &cfg;
 	std::string vanillaPath;
 	std::string moddedPath;
-	Table files[File::TOTAL_FILES]; // Didn't end up needing to keep two coppies around
-	Table newFiles[File::TOTAL_FILES]; // Should refactor this out if it causes slowdown
+	Table newFiles[File::TOTAL_FILES];
 	bool isGood;
 };
