@@ -104,59 +104,53 @@ bool Randomizer::scramble(uint32_t seed)
 // Should grab names from file rather than hardcoding strings here
 void Randomizer::npc()
 {
-	// Row numbers for each towns NPC
-	size_t rowA1[] = {0, 2, 5, 7, 8};
-	size_t rowA2[] = {47, 48, 49, 50, 55, 56, 57, 58, 59, 67, 72, 73};
-	size_t rowA3[] = {106, 110, 112, 113, 114, 121};
-	size_t rowA4[] = {152, 155, 156, 170};
-	size_t rowA5[] = {175, 176, 177, 194};
-	// Names for all NPC's to randomize
-	std::string nameA1[] = {"akara", "kashya", "warriv1", "charsi"};
-	std::string nameA2[] = {"atma", "drognan", "cain2", "act2vendor1", "act2vendor2",
-		"warriv2", "meshif1"};
-	std::string nameA3[] = {"cain3", "asheara", "alkor", "ormus", "meshif2"};
-	std::string nameA4[] = {"tyrael2", "cain4"};
-	std::string nameA5[] = {"malah", "qual-kehk", "cain6"};
-	std::string nameAny[] = {"gheed", "fara", "greiz", "elzix", "lysander", "geglash", "natalya",
-		"halbu", "jamella", "nihlathak"};
+	Table& pFile = newFiles[File::MonPreset];
+	size_t placeCol;
+	if (!pFile.findHeader("Place", placeCol))
+	{
+		printError(EC::badMpqFormat, pFile.name());
+		return;
+	}
 
-	std::vector<std::string> current;
-	std::vector<std::string> any;
-	any.assign(nameAny, std::end(nameAny));
-	npcHelper(current, any, rowA1, sizeof rowA1 / sizeof rowA1[0], nameA1, std::end(nameA1));
-	npcHelper(current, any, rowA2, sizeof rowA2 / sizeof rowA2[0], nameA2, std::end(nameA2));
-	npcHelper(current, any, rowA3, sizeof rowA3 / sizeof rowA3[0], nameA3, std::end(nameA3));
-	npcHelper(current, any, rowA4, sizeof rowA4 / sizeof rowA4[0], nameA4, std::end(nameA4));
-	npcHelper(current, any, rowA5, sizeof rowA5 / sizeof rowA5[0], nameA5, std::end(nameA5));
+	std::vector<size_t> dummy = {3, 4, 6, 13, 14, 21, 22, 69, 70, 73, 108, 109, 131, 195, 203, 204,
+		205, 221};
+	std::vector<size_t> actOneR = {2, 5, 7, 8}; // "R" denotes "Restricted"
+	std::vector<size_t> actOne = {0};
+	std::vector<size_t> actTwoR = {47, 48, 49, 58, 67, 72, 73};
+	std::vector<size_t> actTwo = {50, 55, 56, 57, 59};
+	std::vector<size_t> actThreeR = {106, 110, 112, 113, 114};
+	std::vector<size_t> actThree = {121};
+	std::vector<size_t> actFourR = {152, 170};
+	std::vector<size_t> actFour = {155, 156};
+	std::vector<size_t> actFiveR = {175, 177, 194};
+	std::vector<size_t> actFive = {176};
+
+	std::vector<size_t> anyAct;
+	std::vector<std::string> values;
+
+	pFile.getColValues(dummy, placeCol, values);
+	shuffle(pFile, placeCol, dummy, values);
+
+	npcHelper(pFile, placeCol, actOneR, actOne, anyAct, values);
+	npcHelper(pFile, placeCol, actTwoR, actTwo, anyAct, values);
+	npcHelper(pFile, placeCol, actThreeR, actThree, anyAct, values);
+	npcHelper(pFile, placeCol, actFourR, actFour, anyAct, values);
+	npcHelper(pFile, placeCol, actFiveR, actFive, anyAct, values);
+
+	// Shuffle the unrestricted npcs into any remaining locations
+	shuffle(pFile, placeCol, anyAct, values);
 }
 
-void Randomizer::npcHelper(std::vector<std::string> &current, std::vector<std::string> &any,
-	size_t* row, size_t rowSize, std::string* name, std::string* nameEnd)
+void Randomizer::npcHelper(Table &pFile, size_t col, std::vector<size_t> &rList,
+	std::vector<size_t> &list, std::vector<size_t> &unused, std::vector<std::string> &values)
 {
-	current.assign(name, nameEnd);
-	for(size_t i = 0; i < rowSize; i++)
-	{
-		size_t nameIndex;
-		std::string name;
-		if (current.size() > 0)
-		{
-			nameIndex = rand() % current.size();
-			name = current[nameIndex];
-			current[nameIndex] = current.back();
-			current.pop_back();
-		}
-		else
-		{
-			nameIndex = rand() % any.size();
-			name = any[nameIndex];
-			any[nameIndex] = any.back();
-			any.pop_back();
-		}
-		// Overwrite entry in right column in MonPreset.txt
-		size_t rowIndex = rand() % (rowSize - i);
-		newFiles[File::MonPreset].at(row[rowIndex], 1) = name;
-		row[rowIndex] = row[rowSize - i - 1];
-	}
+	std::vector<std::string> rValues;
+
+	pFile.getColValues(list, col, values);
+	pFile.getColValues(rList, col, rValues);
+	list.insert(list.end(), rList.begin(), rList.end());
+	shuffle(pFile, col, list, rValues);
+	unused.insert(unused.end(), list.begin(), list.end());
 }
 
 void Randomizer::music()
@@ -205,7 +199,8 @@ void Randomizer::mapNames()
 			size_t i = 0;
 			while (i < rows.size())
 			{
-				if (levels.at(rows.at(i), nameCol) == "" || levels.at(rows.at(i), nameCol) == "Den of Evil")
+				if (levels.at(rows.at(i), nameCol) == "" ||
+					levels.at(rows.at(i), nameCol) == "Den of Evil")
 				{
 					rows.at(i) = rows.back();
 					rows.pop_back();
@@ -315,8 +310,6 @@ void Randomizer::mapLinks()
 	uList.assign(SList::ActThreeEnds, std::end(SList::ActThreeEnds));
 	count = (vList.size() - uList.size()) / 2;
 	createLoops(vList, count);
-
-
 	createTree(vList, uList, Lock::none, false);
 
 	// Act 5

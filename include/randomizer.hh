@@ -30,8 +30,8 @@ public:
 
 private:
 	void npc();
-	void npcHelper(std::vector<std::string> &current, std::vector<std::string> &any,
-		size_t* row, size_t rowSize, std::string* name, std::string* nameEnd);
+	void npcHelper(Table &pFile, size_t col, std::vector<size_t> &rList,
+		std::vector<size_t> &list, std::vector<size_t> &unused, std::vector<std::string> &values);
 
 	void music();
 	void mapNames();
