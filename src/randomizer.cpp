@@ -112,7 +112,7 @@ void Randomizer::npc()
 		return;
 	}
 
-	std::vector<size_t> dummy = {3, 4, 6, 13, 14, 21, 22, 69, 70, 73, 108, 109, 131, 195, 203, 204,
+	std::vector<size_t> dummy = {3, 4, 6, 13, 14, 21, 22, 69, 70, 108, 109, 131, 195, 203, 204,
 		205, 221};
 	std::vector<size_t> actOneR = {2, 5, 7, 8}; // "R" denotes "Restricted"
 	std::vector<size_t> actOne = {0};
