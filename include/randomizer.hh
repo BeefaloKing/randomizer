@@ -12,12 +12,21 @@ namespace File
 	{
 		MonPreset,
 		Levels,
-		monstats2,
+		MonStats2,
+		UniqueItems,
+		MagicPrefix,
+		MagicSuffix,
+		SetItems,
+		Sets,
+		ItemTypes,
+		Weapons,
+		Armor,
 		TOTAL_FILES
 	};
 }
 static const std::string FILE_NAME[File::TOTAL_FILES] = {"MonPreset.txt", "Levels.txt",
-	"monstats2.txt"};
+	"monstats2.txt", "UniqueItems.txt", "MagicPrefix.txt", "MagicSuffix.txt", "SetItems.txt",
+	"sets.txt", "ItemTypes.txt", "weapons.txt", "armor.txt"};
 
 class Randomizer
 {
@@ -49,13 +58,15 @@ private:
 
 	void supers();
 	void critters();
+	void uniques();
+	void sets();
 
 	// Shuffle removes values it uses from both rows and values
 	// If you'd like randomization with replacement, use fillStrings instead
 	void shuffle(Table &file, size_t col, std::vector<size_t> &rows,
 		std::vector<std::string> &values);
 	// Overload expects multiple cols and tab delimited entries in values
-	void shuffle(Table &file, std::vector<size_t> cols, std::vector<size_t> &rows,
+	void shuffle(Table &file, std::vector<size_t> &cols, std::vector<size_t> &rows,
 		std::vector<std::string> &values);
 	void fillStrings(Table &file, size_t col, const std::vector<std::string> &values);
 	void fillRange(Table &file, size_t col, size_t min, size_t max);

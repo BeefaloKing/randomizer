@@ -74,6 +74,15 @@ true/false (Default=false)
 If rand_supers is enabled, enable to also randomize act boss spawn locations (where possible).
 Act bosses will always appear in their own act regardless of the super_anyact setting.
 
+	rand_uniques
+true/false (Default=false)
+Enable to randomize names and properies of unique items.
+
+	rand_sets
+true/false (Default=false)
+Enable to randomize base items, names, and properties of set items.
+Also randomizes set names and properties.
+
 --------------------------------------------------
  External
 --------------------------------------------------
