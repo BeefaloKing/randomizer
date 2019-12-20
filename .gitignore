@@ -1,4 +1,2 @@
-bin/config.txt
-*.exe
-*.dll
+/bin
 .clang_complete
