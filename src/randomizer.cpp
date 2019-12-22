@@ -110,6 +110,12 @@ bool Randomizer::scramble(uint32_t seed)
 		sets();
 	}
 
+	if (cfg.getBool("rand_itemprops"))
+	{
+		std::cout << "Randomizing item properties.\n";
+		items();
+	}
+
 	return true;
 }
 
@@ -895,6 +901,85 @@ void Randomizer::sets()
 		rowCopy = rows;
 		shuffle(sItems, cols, rows, values);
 	}
+}
+
+void Randomizer::items()
+{
+	Table &prefix = newFiles[File::MagicPrefix];
+	size_t name;
+	size_t spawn;
+	size_t trans;
+	size_t type;
+	size_t exclude;
+	if (!prefix.findHeader("Name", name) || !prefix.findHeader("spawnable", spawn) ||
+		!prefix.findHeader("transform", trans) || !prefix.findHeader("itype1", type) ||
+		!prefix.findHeader("etype1", exclude))
+	{
+		printError(EC::badMpqFormat, prefix.name());
+		return;
+	}
+
+	std::vector<size_t> rows;
+	std::vector<size_t> rowCopy;
+	std::vector<size_t> cols;
+	std::vector<std::string> values;
+
+	prefix.findRows(spawn, "1", rows);
+	prefix.getColValues(rows, name, values);
+	rowCopy = rows;
+	shuffle(prefix, name, rows, values);
+
+	cols.assign({trans, trans + 1});
+	prefix.getColValues(rows, cols, values);
+	rowCopy = rows;
+	shuffle(prefix, cols, rows, values);
+
+	for (size_t i = 0; i < 7; i++)
+	{
+		prefix.getColValues(rows, type + i, values);
+		rowCopy = rows;
+		shuffle(prefix, type + i, rowCopy, values);
+	}
+	rows.clear();
+	values.assign({""});
+	for (size_t i = 0; i < 5; i++) // Probably more fun to not exclude affixes from any items
+	{
+		fillStrings(prefix, exclude, values);
+	}
+
+
+	Table &suffix = newFiles[File::MagicSuffix];
+	if (!suffix.findHeader("Name", name) || !suffix.findHeader("spawnable", spawn) ||
+		!suffix.findHeader("transform", trans) || !suffix.findHeader("itype1", type) ||
+		!suffix.findHeader("etype1", exclude))
+	{
+		printError(EC::badMpqFormat, suffix.name());
+		return;
+	}
+
+	for (size_t i = 0; i < 3; i++)
+	{
+		fillStrings(suffix, exclude, values);
+	}
+	values.clear();
+
+	suffix.findRows(spawn, "1", rows);
+	suffix.getColValues(rows, name, values);
+	rowCopy = rows;
+	shuffle(suffix, name, rows, values);
+
+	cols.assign({trans, trans + 1});
+	suffix.getColValues(rows, cols, values);
+	rowCopy = rows;
+	shuffle(suffix, cols, rows, values);
+
+	for (size_t i = 0; i < 7; i++)
+	{
+		suffix.getColValues(rows, type + i, values);
+		rowCopy = rows;
+		shuffle(suffix, type + i, rowCopy, values);
+	}
+	rows.clear();
 }
 
 void Randomizer::shuffle(Table &file, size_t col, std::vector<size_t> &rows,

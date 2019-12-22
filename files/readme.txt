@@ -83,6 +83,10 @@ true/false (Default=false)
 Enable to randomize base items, names, and properties of set items.
 Also randomizes set names and properties.
 
+	rand_itemprops
+true/false (Default=false)
+Enable to randomize possible affixes that magic/rares roll.
+
 --------------------------------------------------
  External
 --------------------------------------------------

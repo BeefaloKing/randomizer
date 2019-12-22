@@ -150,5 +150,6 @@ void Config::exportDefault(std::fstream &file)
 	"super_anyact=false\n"
 	"super_actboss=false\n\n"
 	"rand_uniques=false\n"
-	"rand_sets=false\n";
+	"rand_sets=false\n"
+	"rand_itemprops=false\n";
 }

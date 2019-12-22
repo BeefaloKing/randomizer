@@ -3,6 +3,14 @@
 #include <string>
 #include <vector>
 
+namespace FLT
+{
+	enum FLT
+	{
+
+	};
+}
+
 class Table
 {
 public:
@@ -16,6 +24,7 @@ public:
 
 	bool findHeader(const std::string &header, size_t &pos);
 	void findRows(size_t col, const std::string &lookup, std::vector<size_t> &rows);
+	void filterRows(size_t col, const std::string &lookup, FLT::FLT filter);
 	void getColValues(const std::vector<size_t> &rows, size_t col,
 		std::vector<std::string> &values);
 	// Overload expects multiple cols and will return tab delimited entires in values

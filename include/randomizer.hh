@@ -60,6 +60,7 @@ private:
 	void critters();
 	void uniques();
 	void sets();
+	void items();
 
 	// Shuffle removes values it uses from both rows and values
 	// If you'd like randomization with replacement, use fillStrings instead
