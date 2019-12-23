@@ -21,12 +21,13 @@ namespace File
 		ItemTypes,
 		Weapons,
 		Armor,
+		Gems,
 		TOTAL_FILES
 	};
 }
 static const std::string FILE_NAME[File::TOTAL_FILES] = {"MonPreset.txt", "Levels.txt",
 	"monstats2.txt", "UniqueItems.txt", "MagicPrefix.txt", "MagicSuffix.txt", "SetItems.txt",
-	"sets.txt", "ItemTypes.txt", "weapons.txt", "armor.txt"};
+	"sets.txt", "ItemTypes.txt", "weapons.txt", "armor.txt", "gems.txt"};
 
 class Randomizer
 {
@@ -64,6 +65,8 @@ private:
 	void items();
 	void armorHelper(Table &file, std::vector<size_t> rows);
 	void weaponHelper(Table &file, std::vector<size_t> rows);
+
+	void gems();
 
 	// Shuffle removes values it uses from both rows and values
 	// If you'd like randomization with replacement, use fillStrings instead

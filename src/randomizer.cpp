@@ -116,6 +116,12 @@ bool Randomizer::scramble(uint32_t seed)
 		items();
 	}
 
+	if (cfg.getBool("rand_gemrunes"))
+	{
+		std::cout << "Randomizing gem and rune properties.\n";
+		gems();
+	}
+
 	return true;
 }
 
@@ -1141,6 +1147,82 @@ void Randomizer::weaponHelper(Table &file, std::vector<size_t> rows)
 		}
 	}
 	shuffle(file, col, rowCopy, values);
+}
+
+void Randomizer::gems()
+{
+	Table &gems = newFiles[File::Gems];
+	std::vector<size_t> rows;
+	std::vector<size_t> rowCopy;
+	std::vector<size_t> cols;
+	std::vector<std::string> values;
+
+	cols.assign({gems.colAt("nummods"), gems.colAt("transform")});
+	gems.findRows(cols[0], "3", rows); // Add all rows with gems
+	gems.getColValues(rows, cols[1], values);
+	rowCopy = rows;
+	shuffle(gems, cols[1], rowCopy, values);
+
+	gems.findRows(cols[0], "1", rows); // Add all rows with runes
+	cols.clear();
+	values.clear();
+
+	std::vector<std::string> modsOne;
+	std::vector<std::string> modsTwo;
+	std::vector<std::string> modsThree;
+	std::vector<size_t> colCopy;
+	size_t mod = gems.colAt("weaponMod1Code");
+	for (size_t i = 0; i < 3; i++) // Weapon, Helm/Body, Shield
+	{
+		for (size_t j = 0; j < 12; j++) // 4 columns for each of the 3 mods
+		{
+			cols.push_back(mod + (i * 12) + j);
+			colCopy.push_back(mod + (i * 12) + j);
+		}
+
+		gems.getColValues(rows, cols, values);
+		cols.clear();
+	}
+
+	size_t maxValues = values.size() / 3;
+	while (!values.empty())
+	{
+		size_t vIndex = rand() % values.size();
+		size_t offset = rand() % 3;
+
+		for (size_t i = 0; i < 3; i++)
+		{
+			if ((i + offset) % 3 == 0 && modsOne.size() < maxValues)
+			{
+				modsOne.push_back(values.at(vIndex));
+				values.at(vIndex) = values.back();
+				values.pop_back();
+				break;
+			}
+			else if ((i + offset) % 3 == 1 && modsTwo.size() < maxValues)
+			{
+				modsTwo.push_back(values.at(vIndex));
+				values.at(vIndex) = values.back();
+				values.pop_back();
+				break;
+			}
+			else if ((i + offset) % 3 == 2 && modsThree.size() < maxValues)
+			{
+				modsThree.push_back(values.at(vIndex));
+				values.at(vIndex) = values.back();
+				values.pop_back();
+				break;
+			}
+		}
+	}
+
+	for (size_t i = 0; i < maxValues; i++)
+	{
+		values.push_back(modsOne.at(i) + "\t" + modsTwo.at(i) + "\t" + modsThree.at(i));
+	}
+
+	rowCopy = rows;
+	shuffle(gems, colCopy, rowCopy, values);
 }
 
 void Randomizer::shuffle(Table &file, size_t col, std::vector<size_t> &rows,
