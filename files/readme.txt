@@ -87,6 +87,11 @@ Also randomizes set names and properties.
 true/false (Default=false)
 Enable to randomize possible affixes that magic/rares roll and base item stats.
 
+	rand_gemrunes
+true/false (Default=false)
+Enable to randomize properties for gems and runes.
+
+
 --------------------------------------------------
  External
 --------------------------------------------------
