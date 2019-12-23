@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -7,7 +8,8 @@ namespace FLT
 {
 	enum FLT
 	{
-
+		Contains,
+		NotContains
 	};
 }
 
@@ -22,9 +24,11 @@ public:
 	bool open(std::string);
 	void close();
 
-	bool findHeader(const std::string &header, size_t &pos);
+	bool findHeader(const std::string &header, size_t &pos); // Eventually remove
+	size_t colAt(const std::string &header);
 	void findRows(size_t col, const std::string &lookup, std::vector<size_t> &rows);
-	void filterRows(size_t col, const std::string &lookup, FLT::FLT filter);
+	void filterRows(size_t col, const std::string &lookup, std::vector<size_t> &rows,
+		FLT::FLT filter);
 	void getColValues(const std::vector<size_t> &rows, size_t col,
 		std::vector<std::string> &values);
 	// Overload expects multiple cols and will return tab delimited entires in values
@@ -47,7 +51,8 @@ public:
 	}
 private:
 	std::string fileName;
-	std::vector<std::string> headers;
+	std::vector<std::string> fileHeaders; // Handles ugly duplicate columns
+	std::map<std::string, size_t> headers;
 	std::string* body;
 	size_t numRows;
 	size_t numCols;

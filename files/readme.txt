@@ -47,7 +47,7 @@ Enable to randomize the order waypoints are listed in the menu.
 Does NOT randomize which areas have waypoints.
 Town waypoints will always be at the top.
 
-rand_music
+	rand_music
 true/false (Default=false)
 Enable to randomize music played in each area.
 
@@ -85,7 +85,7 @@ Also randomizes set names and properties.
 
 	rand_itemprops
 true/false (Default=false)
-Enable to randomize possible affixes that magic/rares roll.
+Enable to randomize possible affixes that magic/rares roll and base item stats.
 
 --------------------------------------------------
  External

@@ -10,6 +10,14 @@
 #include <sstream>
 #include <string>
 
+// Thank you for checking out my project
+//
+// DISCLAIMER!
+// This code is quite poorly written and contains a lot of bad practices.
+// If you are interested in seeing how I did things, that's cool, but don't try and mimick it.
+// If you want to write something similar please don't hold this code up on a pedestal.
+// Thank you.
+
 static const char* VERSION = "0.1";
 
 // Should probably move/clean up everything to do with managing the install
