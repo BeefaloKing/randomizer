@@ -47,7 +47,7 @@ Enable to randomize the order waypoints are listed in the menu.
 Does NOT randomize which areas have waypoints.
 Town waypoints will always be at the top.
 
-rand_music
+	rand_music
 true/false (Default=false)
 Enable to randomize music played in each area.
 
@@ -73,6 +73,19 @@ If rand_supers is enabled, enable to allow spawn locations to be ranomized betwe
 true/false (Default=false)
 If rand_supers is enabled, enable to also randomize act boss spawn locations (where possible).
 Act bosses will always appear in their own act regardless of the super_anyact setting.
+
+	rand_uniques
+true/false (Default=false)
+Enable to randomize names and properies of unique items.
+
+	rand_sets
+true/false (Default=false)
+Enable to randomize base items, names, and properties of set items.
+Also randomizes set names and properties.
+
+	rand_itemprops
+true/false (Default=false)
+Enable to randomize possible affixes that magic/rares roll and base item stats.
 
 --------------------------------------------------
  External

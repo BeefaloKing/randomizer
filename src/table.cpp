@@ -82,7 +82,8 @@ bool Table::open(std::string file)
 			while(ssLine.good())
 			{
 				std::getline(ssLine, element, '\t');
-				headers.push_back(element);
+				headers.emplace(element, fileHeaders.size());
+				fileHeaders.push_back(element);
 			}
 		}
 		else
@@ -90,7 +91,7 @@ bool Table::open(std::string file)
 			printError(EC::badFormat, file);
 			success = false;
 		}
-		numCols = headers.size();
+		numCols = fileHeaders.size();
 
 		while (csv.ignore(INT_MAX, '\n') && !csv.eof())
 		{
@@ -139,6 +140,7 @@ bool Table::open(std::string file)
 void Table::close()
 {
 	fileName = "";
+	fileHeaders.clear();
 	headers.clear();
 	if (body)
 	{
@@ -149,17 +151,25 @@ void Table::close()
 	numCols = 0;
 }
 
+// Remove deprecated function when you feel like fixing up all the areas it's used
 bool Table::findHeader(const std::string &header, size_t &pos)
 {
-	for (size_t i = 0; i < numCols; i++)
+	pos = colAt(header);
+	return true;
+}
+
+size_t Table::colAt(const std::string &header)
+{
+	auto it = headers.find(header);
+	if (it != headers.end())
 	{
-		if (headers[i] == header)
-		{
-			pos = i;
-			return true;
-		}
+		return it->second;
 	}
-	return false;
+	else
+	{
+		printError(EC::badMpqFormat, fileName);
+		throw std::out_of_range(header + " not in table");
+	}
 }
 
 void Table::findRows(size_t col, const std::string &lookup, std::vector<size_t> &rows)
@@ -169,6 +179,22 @@ void Table::findRows(size_t col, const std::string &lookup, std::vector<size_t> 
 		if (at(i, col) == lookup)
 		{
 			rows.push_back(i);
+		}
+	}
+}
+
+void Table::filterRows(size_t col, const std::string &lookup, std::vector<size_t> &rows,
+	FLT::FLT filter)
+{
+	for (size_t i = 0; i < rows.size(); )
+	{
+		if ((at(rows.at(i), col) == lookup) != (filter == FLT::Contains))
+		{
+			rows.erase(rows.begin() + i);
+		}
+		else
+		{
+			i++;
 		}
 	}
 }
@@ -204,7 +230,7 @@ void Table::print(std::iostream &out)
 {
 	for (size_t h = 0; h < numCols; h++)
 	{
-		out << headers.at(h);
+		out << fileHeaders.at(h);
 		if (h < numCols - 1)
 		{
 			out << "\t";
@@ -235,6 +261,9 @@ std::string &Table::at(size_t row, size_t col)
 	}
 	else
 	{
-		throw std::out_of_range("table out of range");
+		std::stringstream error;
+		error << "at(" << row << ", " << col << ") exceeds range (" << numRows << ", " <<
+			numCols << ")";
+		throw std::out_of_range(error.str());
 	}
 }

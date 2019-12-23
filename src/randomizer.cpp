@@ -98,6 +98,24 @@ bool Randomizer::scramble(uint32_t seed)
 		critters();
 	}
 
+	if (cfg.getBool("rand_uniques"))
+	{
+		std::cout << "Randomizing unique items.\n";
+		uniques();
+	}
+
+	if (cfg.getBool("rand_sets"))
+	{
+		std::cout << "Randomizing set items.\n";
+		sets();
+	}
+
+	if (cfg.getBool("rand_itemprops"))
+	{
+		std::cout << "Randomizing item properties.\n";
+		items();
+	}
+
 	return true;
 }
 
@@ -605,7 +623,7 @@ void Randomizer::supers()
 
 void Randomizer::critters()
 {
-	Table &stats = newFiles[File::monstats2];
+	Table &stats = newFiles[File::MonStats2];
 	Table &levels = newFiles[File::Levels];
 	size_t idCol;
 	size_t critterCol;
@@ -638,6 +656,493 @@ void Randomizer::critters()
 	fillRange(levels, cpctCol + 3, 1, 100);
 }
 
+void Randomizer::uniques()
+{
+	Table &items = newFiles[File::UniqueItems];
+	size_t enabled;
+	size_t lvl;
+	size_t code;
+	size_t image;
+	size_t trans;
+	size_t prop;
+	if (!items.findHeader("enabled", enabled) || !items.findHeader("lvl", lvl) ||
+		!items.findHeader("code", code) || !items.findHeader("chrtransform", trans) ||
+		!items.findHeader("prop1", prop) || !items.findHeader("flippyfile", image))
+	{
+		printError(EC::badMpqFormat, items.name());
+		return;
+	}
+
+	std::vector<size_t> rows;
+	std::vector<size_t> rowCopy; // Maybe terrible, but used since shuffle removes everything
+	std::vector<size_t> cols;
+	std::vector<std::string> values;
+	items.findRows(enabled, "1", rows);
+
+	cols.assign({lvl, lvl + 1});
+	items.getColValues(rows, cols, values);
+	rowCopy = rows;
+	shuffle(items, cols, rowCopy, values);
+
+	// Guessing chaning the index will break things, so change everything else instead
+	cols.assign({code, code + 1, image, image + 1});
+	items.getColValues(rows, cols, values);
+	rowCopy = rows;
+	shuffle(items, cols, rowCopy, values);
+
+	cols.assign({trans, trans + 1});
+	items.getColValues(rows, cols, values);
+	rowCopy = rows;
+	shuffle(items, cols, rowCopy, values);
+
+	for (size_t i = 0; i < 12; i++) // 12 prop columns
+	{
+		size_t propCol = prop + (i * 4);
+		cols.assign({propCol, propCol + 1, propCol + 2, propCol + 3});
+		items.getColValues(rows, cols, values);
+		rowCopy = rows;
+		shuffle(items, cols, rowCopy, values);
+	}
+}
+
+void Randomizer::sets()
+{
+	Table &sItems = newFiles[File::SetItems];
+	Table &types = newFiles[File::ItemTypes];
+	Table &weapons = newFiles[File::Weapons];
+	Table &armor = newFiles[File::Armor];
+	size_t setItem;
+	size_t typCode;
+	size_t typBody;
+	size_t wepType;
+	size_t wepCode;
+	size_t wepHand;
+	size_t wepSpwn;
+	size_t armType;
+	size_t armCode;
+	size_t armSpwn;
+	if (!sItems.findHeader("item", setItem))
+	{
+		printError(EC::badMpqFormat, sItems.name());
+		return;
+	}
+	if (!types.findHeader("Code", typCode) || !types.findHeader("BodyLoc1", typBody))
+	{
+		printError(EC::badMpqFormat, types.name());
+		return;
+	}
+	if (!weapons.findHeader("type", wepType) || !weapons.findHeader("code", wepCode) ||
+		!weapons.findHeader("2handed", wepHand) || !weapons.findHeader("spawnable", wepSpwn))
+	{
+		printError(EC::badMpqFormat, weapons.name());
+		return;
+	}
+	if (!armor.findHeader("type", armType) || !armor.findHeader("code", armCode) ||
+		!armor.findHeader("spawnable", armSpwn))
+	{
+		printError(EC::badMpqFormat, armor.name());
+		return;
+	}
+
+	// For each set item, randomize the item code to another item equipable in the same slot
+	for (size_t i = 0; i < sItems.rows(); i++)
+	{
+		std::string itemCode = sItems.at(i, setItem);
+		std::vector<size_t> rows;
+
+		std::string itemType;
+		std::string bodyLoc;
+		std::vector<std::string> itemTypes;
+		std::vector<std::string> itemCodes;
+
+		weapons.findRows(wepCode, itemCode, rows);
+		if (!rows.empty()) // if itemType is a weapon
+		{
+			itemType = weapons.at(rows.at(0), wepType);
+			bool twoHand = weapons.at(rows.at(0), wepHand) == "1";
+			rows.clear();
+
+			types.findRows(typCode, itemType, rows);
+			bodyLoc = types.at(rows.at(0), typBody);
+			rows.clear();
+
+			types.findRows(typBody, bodyLoc, rows);
+			types.getColValues(rows, typCode, itemTypes);
+			rows.clear();
+
+			for (std::string &e : itemTypes)
+			{
+				weapons.findRows(wepType, e, rows);
+			}
+
+			size_t rowIndex = 0;
+			while (rowIndex < rows.size())
+			{
+				if ((weapons.at(rows.at(rowIndex), wepHand) == "1") != twoHand ||
+					weapons.at(rows.at(rowIndex), wepSpwn) != "1")
+				{
+					rows.at(rowIndex) = rows.back();
+					rows.pop_back();
+				}
+				else
+				{
+					rowIndex++;
+				}
+			}
+			// Populate itemCodes after any with different handedness or not spawnable are removed
+			weapons.getColValues(rows, wepCode, itemCodes);
+			rows.clear();
+		}
+		else // if itemType is not a weapon
+		{
+			armor.findRows(armCode, itemCode, rows);
+			if (rows.empty())
+			{
+
+				continue; // Jump to top of loop as item is not a weapon or armor
+			}
+			itemType = armor.at(rows.at(0), armType);
+			rows.clear();
+
+			types.findRows(typCode, itemType, rows);
+			bodyLoc = types.at(rows.at(0), typBody);
+			rows.clear();
+
+			types.findRows(typBody, bodyLoc, rows);
+			types.getColValues(rows, typCode, itemTypes);
+			rows.clear();
+
+			for (std::string &e : itemTypes)
+			{
+				armor.findRows(armType, e, rows);
+			}
+
+			size_t rowIndex = 0;
+			while (rowIndex < rows.size())
+			{
+				if (armor.at(rows.at(rowIndex), armSpwn) != "1")
+				{
+					rows.at(rowIndex) = rows.back();
+					rows.pop_back();
+				}
+				else
+				{
+					rowIndex++;
+				}
+			}
+			// Populate itemCodes after any not spawnable are removed
+			armor.getColValues(rows, armCode, itemCodes);
+			rows.clear();
+		}
+
+		if (!itemCodes.empty())
+		{
+			sItems.at(i, setItem) = itemCodes.at(rand() % itemCodes.size());
+		}
+	}
+
+	size_t index;
+	size_t trans;
+	size_t prop;
+	size_t eol;
+	if (!sItems.findHeader("index", index) || !sItems.findHeader("chrtransform", trans) ||
+		!sItems.findHeader("prop1", prop) || !sItems.findHeader("*eol", eol))
+	{
+		printError(EC::badMpqFormat, sItems.name());
+		return;
+	}
+
+	std::vector<size_t> rows;
+	std::vector<size_t> rowCopy; // shuffle wipes the contents of whatever you pass into it
+	std::vector<size_t> cols;
+	std::vector<std::string> values;
+
+	sItems.findRows(eol, "0", rows); // Ignores the Expansion line
+
+	sItems.getColValues(rows, index, values);
+	rowCopy = rows;
+	shuffle(sItems, index, rowCopy, values);
+
+	cols.assign({trans, trans + 1});
+	sItems.getColValues(rows, cols, values);
+	rowCopy = rows;
+	shuffle(sItems, cols, rowCopy, values);
+
+	for (size_t i = 0; i < 19; i++) // 19 prop columns
+	{
+		size_t propCol = prop + (i * 4);
+		cols.assign({propCol, propCol + 1, propCol + 2, propCol + 3});
+		sItems.getColValues(rows, cols, values);
+		rowCopy = rows;
+		shuffle(sItems, cols, rows, values);
+	}
+	rows.clear();
+
+	Table &sets = newFiles[File::Sets];
+	size_t name;
+	if (!sets.findHeader("name", name) || !sets.findHeader("PCode2a", prop) ||
+		!sets.findHeader("*eol", eol))
+	{
+		printError(EC::badMpqFormat, sets.name());
+		return;
+	}
+
+	sets.findRows(eol, "0", rows); // Ignores the Expansion line, again...
+
+	sets.getColValues(rows, name, values);
+	rowCopy = rows;
+	shuffle(sets, name, rows, values);
+
+	for (size_t i = 0; i < 16; i++) // 16 prop columns
+	{
+		size_t propCol = prop + (i * 4);
+		cols.assign({propCol, propCol + 1, propCol + 2, propCol + 3});
+		sets.getColValues(rows, cols, values);
+		rowCopy = rows;
+		shuffle(sItems, cols, rows, values);
+	}
+}
+
+void Randomizer::items()
+{
+	// Item Affixes
+	Table &prefix = newFiles[File::MagicPrefix];
+	size_t name;
+	size_t spawn;
+	size_t trans;
+	size_t type;
+	size_t exclude;
+	if (!prefix.findHeader("Name", name) || !prefix.findHeader("spawnable", spawn) ||
+		!prefix.findHeader("transform", trans) || !prefix.findHeader("itype1", type) ||
+		!prefix.findHeader("etype1", exclude))
+	{
+		printError(EC::badMpqFormat, prefix.name());
+		return;
+	}
+
+	std::vector<size_t> rows;
+	std::vector<size_t> rowCopy;
+	std::vector<size_t> cols;
+	std::vector<std::string> values;
+
+	prefix.findRows(spawn, "1", rows);
+	prefix.getColValues(rows, name, values);
+	rowCopy = rows;
+	shuffle(prefix, name, rows, values);
+
+	cols.assign({trans, trans + 1});
+	prefix.getColValues(rows, cols, values);
+	rowCopy = rows;
+	shuffle(prefix, cols, rows, values);
+
+	for (size_t i = 0; i < 7; i++)
+	{
+		prefix.getColValues(rows, type + i, values);
+		rowCopy = rows;
+		shuffle(prefix, type + i, rowCopy, values);
+	}
+	rows.clear();
+	values.assign({""});
+	for (size_t i = 0; i < 5; i++) // Probably more fun to not exclude affixes from any items
+	{
+		fillStrings(prefix, exclude, values);
+	}
+
+	Table &suffix = newFiles[File::MagicSuffix];
+	if (!suffix.findHeader("Name", name) || !suffix.findHeader("spawnable", spawn) ||
+		!suffix.findHeader("transform", trans) || !suffix.findHeader("itype1", type) ||
+		!suffix.findHeader("etype1", exclude))
+	{
+		printError(EC::badMpqFormat, suffix.name());
+		return;
+	}
+
+	for (size_t i = 0; i < 3; i++)
+	{
+		fillStrings(suffix, exclude, values);
+	}
+	values.clear();
+
+	suffix.findRows(spawn, "1", rows);
+	suffix.getColValues(rows, name, values);
+	rowCopy = rows;
+	shuffle(suffix, name, rows, values);
+
+	cols.assign({trans, trans + 1});
+	suffix.getColValues(rows, cols, values);
+	rowCopy = rows;
+	shuffle(suffix, cols, rows, values);
+
+	for (size_t i = 0; i < 7; i++)
+	{
+		suffix.getColValues(rows, type + i, values);
+		rowCopy = rows;
+		shuffle(suffix, type + i, rowCopy, values);
+	}
+	rows.clear();
+
+	// Armor Properties
+	Table &armor = newFiles[File::Armor];
+	std::vector<size_t> current;
+
+	armor.findRows(armor.colAt("spawnable"), "1", rows);
+
+	size_t upgrade = armor.colAt("NightmareUpgrade");
+	current = rows; // Grab only normal items
+	armor.filterRows(upgrade, "xxx", current, FLT::NotContains);
+	armorHelper(armor, current);
+
+	current = rows; // Grab only exceptional items
+	armor.filterRows(upgrade, "xxx", current, FLT::Contains);
+	armor.filterRows(upgrade + 1, "xxx", current, FLT::NotContains);
+	armorHelper(armor, current);
+
+	current = rows; // Grab only elite items
+	armor.filterRows(upgrade + 1, "xxx", current, FLT::Contains);
+	armorHelper(armor, current);
+	rows.clear();
+
+	// Weapon Properties
+	Table &weapons = newFiles[File::Weapons];
+
+	weapons.findRows(weapons.colAt("spawnable"), "1", rows);
+
+	upgrade = weapons.colAt("NightmareUpgrade");
+	current = rows;
+	weapons.filterRows(upgrade, "xxx", current, FLT::NotContains);
+	weaponHelper(weapons, current);
+
+	current = rows;
+	weapons.filterRows(upgrade, "xxx", current, FLT::Contains);
+	weapons.filterRows(upgrade + 1, "xxx", current, FLT::NotContains);
+	weaponHelper(weapons, current);
+
+	current = rows;
+	weapons.filterRows(upgrade + 1, "xxx", current, FLT::Contains);
+	weaponHelper(weapons, current);
+	rows.clear();
+}
+
+void Randomizer::armorHelper(Table &file, std::vector<size_t> rows)
+{
+	std::vector<size_t> cols;
+	std::vector<size_t> rowCopy;
+	std::vector<std::string> values;
+
+	cols.assign({file.colAt("speed"), file.colAt("reqstr"), file.colAt("durability"),
+		file.colAt("namestr")});
+	for (size_t i = 0; i < cols.size(); i++)
+	{
+		file.getColValues(rows, cols[i], values);
+		rowCopy = rows;
+		shuffle(file, cols[i], rowCopy, values);
+	}
+
+	cols.assign({file.colAt("minac"), file.colAt("maxac"), file.colAt("cost"),
+		file.colAt("gamble cost")});
+	file.getColValues(rows, cols, values);
+	rowCopy = rows;
+	shuffle(file, cols, rowCopy, values);
+
+	cols.assign({file.colAt("level"), file.colAt("levelreq")});
+	file.getColValues(rows, cols, values);
+	rowCopy = rows;
+	shuffle(file, cols, rowCopy, values);
+
+	cols.assign({file.colAt("Transform"), file.colAt("InvTrans")});
+	file.getColValues(rows, cols, values);
+	rowCopy = rows;
+	shuffle(file, cols, rowCopy, values);
+
+	rowCopy = rows;
+	size_t col = file.colAt("block");
+	file.filterRows(col, "0", rowCopy, FLT::NotContains);
+	file.getColValues(rowCopy, col, values);
+	shuffle(file, col, rowCopy, values);
+
+	rowCopy = rows;
+	col = file.colAt("gemsockets");
+	file.filterRows(file.colAt("hasinv"), "1", rowCopy, FLT::Contains);
+	file.getColValues(rowCopy, col, values);
+	// Since many larger items get randomly assigned 1/2 sockets, this gives them a chance at more
+	// 1 in 3 "felt right."
+	for (size_t i = 0; i < values.size(); i++)
+	{
+		std::string &entry = values.at(i);
+		if ((entry == "1" || entry == "2") && rand() % 3 == 0)
+		{
+			entry = entry.at(0) + 1;
+		}
+	}
+	shuffle(file, col, rowCopy, values);
+
+	rowCopy = rows;
+	cols.assign({file.colAt("mindam"), file.colAt("maxdam"), file.colAt("StrBonus"),
+		file.colAt("DexBonus")});
+	file.filterRows(cols[0], "0", rowCopy, FLT::NotContains);
+	file.getColValues(rowCopy, cols, values);
+	shuffle(file, cols, rows, values);
+}
+
+void Randomizer::weaponHelper(Table &file, std::vector<size_t> rows)
+{
+	std::vector<size_t> cols;
+	std::vector<size_t> rowCopy;
+	std::vector<std::string> values;
+
+	cols.assign({file.colAt("namestr"), file.colAt("speed"), file.colAt("StrBonus"),
+		file.colAt("DexBonus"), file.colAt("reqstr"), file.colAt("reqdex"),
+		file.colAt("durability")});
+	for (size_t i = 0; i < cols.size(); i++)
+	{
+		file.getColValues(rows, cols[i], values);
+		rowCopy = rows;
+		shuffle(file, cols[i], rowCopy, values);
+	}
+
+	cols.assign({file.colAt("level"), file.colAt("levelreq")});
+	file.getColValues(rows, cols, values);
+	rowCopy = rows;
+	shuffle(file, cols, rowCopy, values);
+
+	cols.assign({file.colAt("Transform"), file.colAt("InvTrans")});
+	file.getColValues(rows, cols, values);
+	rowCopy = rows;
+	shuffle(file, cols, rowCopy, values);
+
+	rowCopy = rows;
+	cols.assign({file.colAt("mindam"), file.colAt("maxdam")});
+	file.filterRows(cols[0], "", rowCopy, FLT::NotContains);
+	file.getColValues(rowCopy, cols, values);
+	shuffle(file, cols, rows, values);
+
+	rowCopy = rows;
+	cols.assign({file.colAt("2handmindam"), file.colAt("2handmaxdam")});
+	file.filterRows(cols[0], "", rowCopy, FLT::NotContains);
+	file.getColValues(rowCopy, cols, values);
+	shuffle(file, cols, rows, values);
+
+	rowCopy = rows;
+	cols.assign({file.colAt("minmisdam"), file.colAt("maxmisdam")});
+	file.filterRows(cols[0], "", rowCopy, FLT::NotContains);
+	file.getColValues(rowCopy, cols, values);
+	shuffle(file, cols, rows, values);
+
+	rowCopy = rows;
+	size_t col = file.colAt("gemsockets");
+	file.filterRows(file.colAt("hasinv"), "1", rowCopy, FLT::Contains);
+	file.getColValues(rowCopy, col, values);
+	for (size_t i = 0; i < values.size(); i++)
+	{
+		std::string &entry = values.at(i);
+		if ((entry == "1" || entry == "2") && rand() % 3 == 0)
+		{
+			entry = entry.at(0) + 1;
+		}
+	}
+	shuffle(file, col, rowCopy, values);
+}
+
 void Randomizer::shuffle(Table &file, size_t col, std::vector<size_t> &rows,
 	std::vector<std::string> &values)
 {
@@ -654,7 +1159,7 @@ void Randomizer::shuffle(Table &file, size_t col, std::vector<size_t> &rows,
 	}
 }
 
-void Randomizer::shuffle(Table &file, std::vector<size_t> cols, std::vector<size_t> &rows,
+void Randomizer::shuffle(Table &file, std::vector<size_t> &cols, std::vector<size_t> &rows,
 	std::vector<std::string> &values)
 {
 	while (!rows.empty() && !values.empty())
