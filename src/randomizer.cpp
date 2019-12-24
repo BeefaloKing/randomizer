@@ -996,43 +996,40 @@ void Randomizer::items()
 	// Armor Properties
 	Table &armor = newFiles[File::Armor];
 	std::vector<size_t> current;
+	size_t col;
 
-	armor.findRows(armor.colAt("spawnable"), "1", rows);
-
-	size_t upgrade = armor.colAt("NightmareUpgrade");
-	current = rows; // Grab only normal items
-	armor.filterRows(upgrade, "xxx", current, FLT::NotContains);
+	armor.findMatchRows(armor.colAt("code"), armor.colAt("normcode"), current);
+	col = armor.colAt("spawnable");
+	armor.filterRows(col, "1", current, FLT::Contains);
 	armorHelper(armor, current);
 
-	current = rows; // Grab only exceptional items
-	armor.filterRows(upgrade, "xxx", current, FLT::Contains);
-	armor.filterRows(upgrade + 1, "xxx", current, FLT::NotContains);
+	armor.findMatchRows(armor.colAt("code"), armor.colAt("ubercode"), current);
+	col = armor.colAt("spawnable");
+	armor.filterRows(col, "1", current, FLT::Contains);
 	armorHelper(armor, current);
 
-	current = rows; // Grab only elite items
-	armor.filterRows(upgrade + 1, "xxx", current, FLT::Contains);
+	armor.findMatchRows(armor.colAt("code"), armor.colAt("ultracode"), current);
+	col = armor.colAt("spawnable");
+	armor.filterRows(col, "1", current, FLT::Contains);
 	armorHelper(armor, current);
-	rows.clear();
 
 	// Weapon Properties
 	Table &weapons = newFiles[File::Weapons];
 
-	weapons.findRows(weapons.colAt("spawnable"), "1", rows);
-
-	upgrade = weapons.colAt("NightmareUpgrade");
-	current = rows;
-	weapons.filterRows(upgrade, "xxx", current, FLT::NotContains);
+	weapons.findMatchRows(weapons.colAt("code"), weapons.colAt("normcode"), current);
+	col = weapons.colAt("spawnable");
+	weapons.filterRows(col, "1", current, FLT::Contains);
 	weaponHelper(weapons, current);
 
-	current = rows;
-	weapons.filterRows(upgrade, "xxx", current, FLT::Contains);
-	weapons.filterRows(upgrade + 1, "xxx", current, FLT::NotContains);
+	weapons.findMatchRows(weapons.colAt("code"), weapons.colAt("ubercode"), current);
+	col = weapons.colAt("spawnable");
+	weapons.filterRows(col, "1", current, FLT::Contains);
 	weaponHelper(weapons, current);
 
-	current = rows;
-	weapons.filterRows(upgrade + 1, "xxx", current, FLT::Contains);
+	weapons.findMatchRows(weapons.colAt("code"), weapons.colAt("ultracode"), current);
+	col = weapons.colAt("spawnable");
+	weapons.filterRows(col, "1", current, FLT::Contains);
 	weaponHelper(weapons, current);
-	rows.clear();
 }
 
 void Randomizer::armorHelper(Table &file, std::vector<size_t> rows)
