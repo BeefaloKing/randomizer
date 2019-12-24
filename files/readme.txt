@@ -91,6 +91,9 @@ Enable to randomize possible affixes that magic/rares roll and base item stats.
 true/false (Default=false)
 Enable to randomize properties for gems and runes.
 
+	rand_shopstock
+true/false (Default=false)
+Enable to randomize the items vendors keep in stock.
 
 --------------------------------------------------
  External

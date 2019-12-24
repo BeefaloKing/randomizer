@@ -183,6 +183,17 @@ void Table::findRows(size_t col, const std::string &lookup, std::vector<size_t> 
 	}
 }
 
+void Table::findMatchRows(size_t col, size_t matchCol, std::vector<size_t> &rows)
+{
+	for (size_t i = 0; i < numRows; i++)
+	{
+		if (at(i, col) == at(i, matchCol))
+		{
+			rows.push_back(i);
+		}
+	}
+}
+
 void Table::filterRows(size_t col, const std::string &lookup, std::vector<size_t> &rows,
 	FLT::FLT filter)
 {
