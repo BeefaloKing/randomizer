@@ -1002,16 +1002,19 @@ void Randomizer::items()
 	col = armor.colAt("spawnable");
 	armor.filterRows(col, "1", current, FLT::Contains);
 	armorHelper(armor, current);
+	current.clear();
 
 	armor.findMatchRows(armor.colAt("code"), armor.colAt("ubercode"), current);
 	col = armor.colAt("spawnable");
 	armor.filterRows(col, "1", current, FLT::Contains);
 	armorHelper(armor, current);
+	current.clear();
 
 	armor.findMatchRows(armor.colAt("code"), armor.colAt("ultracode"), current);
 	col = armor.colAt("spawnable");
 	armor.filterRows(col, "1", current, FLT::Contains);
 	armorHelper(armor, current);
+	current.clear();
 
 	// Weapon Properties
 	Table &weapons = newFiles[File::Weapons];
@@ -1020,16 +1023,19 @@ void Randomizer::items()
 	col = weapons.colAt("spawnable");
 	weapons.filterRows(col, "1", current, FLT::Contains);
 	weaponHelper(weapons, current);
+	current.clear();
 
 	weapons.findMatchRows(weapons.colAt("code"), weapons.colAt("ubercode"), current);
 	col = weapons.colAt("spawnable");
 	weapons.filterRows(col, "1", current, FLT::Contains);
 	weaponHelper(weapons, current);
+	current.clear();
 
 	weapons.findMatchRows(weapons.colAt("code"), weapons.colAt("ultracode"), current);
 	col = weapons.colAt("spawnable");
 	weapons.filterRows(col, "1", current, FLT::Contains);
 	weaponHelper(weapons, current);
+	current.clear();
 }
 
 void Randomizer::armorHelper(Table &file, std::vector<size_t> rows)
