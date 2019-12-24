@@ -152,5 +152,6 @@ void Config::exportDefault(std::fstream &file)
 	"rand_uniques=false\n"
 	"rand_sets=false\n"
 	"rand_itemprops=false\n"
-	"rand_gemrunes=false\n";
+	"rand_gemrunes=false\n"
+	"rand_shopstock=false\n";
 }

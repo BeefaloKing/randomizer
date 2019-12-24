@@ -122,6 +122,12 @@ bool Randomizer::scramble(uint32_t seed)
 		gems();
 	}
 
+	if (cfg.getBool("rand_shopstock"))
+	{
+		std::cout << "Randomizing vendor inventories.\n";
+		shops();
+	}
+
 	return true;
 }
 
@@ -1223,6 +1229,68 @@ void Randomizer::gems()
 
 	rowCopy = rows;
 	shuffle(gems, colCopy, rowCopy, values);
+}
+
+void Randomizer::shops()
+{
+	std::vector<size_t> rows;
+	size_t col;
+
+	/**Table &misc = newFiles[File::Misc];
+	col = misc.colAt("dropsound");
+	misc.findRows(col, "item_potion", rows);
+	misc.findRows(col, "item_book", rows);
+	misc.findRows(col, "item_quiver", rows);
+	misc.findRows(col, "item_scroll", rows);
+	misc.findRows(col, "item_key", rows);
+
+	col = misc.colAt("spawnable");
+	misc.filterRows(col, "1", rows, FLT::Contains);
+	col = misc.colAt("name");
+	misc.filterRows(col, "elixir", rows, FLT::NotContains);
+	misc.filterRows(col, "Scroll", rows, FLT::NotContains);
+
+	shopHelper(misc, rows);
+	rows.clear();**/
+
+	Table &armor = newFiles[File::Armor];
+	armor.findMatchRows(armor.colAt("code"), armor.colAt("normcode"), rows);
+	col = armor.colAt("spawnable");
+	armor.filterRows(col, "1", rows, FLT::Contains);
+
+	shopHelper(armor, rows);
+	rows.clear();
+
+	Table &weapons = newFiles[File::Weapons];
+	weapons.findMatchRows(weapons.colAt("code"), weapons.colAt("normcode"), rows);
+	col = weapons.colAt("spawnable");
+	weapons.filterRows(col, "1", rows, FLT::Contains);
+	col = weapons.colAt("type");
+	weapons.filterRows(col, "tpot", rows, FLT::NotContains);
+
+	shopHelper(weapons, rows);
+	rows.clear();
+}
+
+void Randomizer::shopHelper(Table &file, std::vector<size_t> rows)
+{
+	std::vector<size_t> rowCopy;
+	std::vector<size_t> cols;
+	std::vector<std::string> values;
+	size_t col = file.colAt("CharsiMin");
+
+	for (size_t i = 0; i < 17; i++) // 17 vendors
+	{
+		size_t vendor = col + (i * 5);
+		for (size_t j = 0; j < 5; j++)
+		{
+			cols.push_back(vendor + j);
+		}
+		file.getColValues(rows, cols, values);
+		rowCopy = rows;
+		shuffle(file, cols, rowCopy, values);
+		cols.clear();
+	}
 }
 
 void Randomizer::shuffle(Table &file, size_t col, std::vector<size_t> &rows,

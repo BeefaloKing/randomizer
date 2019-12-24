@@ -27,6 +27,7 @@ public:
 	bool findHeader(const std::string &header, size_t &pos); // Eventually remove
 	size_t colAt(const std::string &header);
 	void findRows(size_t col, const std::string &lookup, std::vector<size_t> &rows);
+	void findMatchRows(size_t col, size_t matchCol, std::vector<size_t> & rows);
 	void filterRows(size_t col, const std::string &lookup, std::vector<size_t> &rows,
 		FLT::FLT filter);
 	void getColValues(const std::vector<size_t> &rows, size_t col,
