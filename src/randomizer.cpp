@@ -5,6 +5,7 @@
 #include <iostream>
 #include <sstream>
 #include <cstdlib>
+#include <tuple>
 #include <vector>
 
 Randomizer::Randomizer(std::string vanillaPath, std::string moddedPath) :
@@ -126,6 +127,12 @@ bool Randomizer::scramble(uint32_t seed)
 	{
 		std::cout << "Randomizing vendor inventories.\n";
 		shops();
+	}
+
+	if (cfg.getBool("rand_charskills"))
+	{
+		std::cout << "Randomizing character skill trees.\n";
+		skills();
 	}
 
 	return true;
@@ -1293,6 +1300,212 @@ void Randomizer::shopHelper(Table &file, std::vector<size_t> rows)
 		rowCopy = rows;
 		shuffle(file, cols, rowCopy, values);
 		cols.clear();
+	}
+}
+
+void Randomizer::skills()
+{
+	Table &skills = newFiles[File::Skills];
+	Table &desc = newFiles[File::SkillDesc];
+
+	std::vector<size_t> skillRows;
+	std::vector<size_t> levelRows;
+	std::vector<std::string> values;
+
+	std::vector<std::tuple<std::string, std::string, std::string>> ama;
+	std::vector<std::tuple<std::string, std::string, std::string>> ass;
+	std::vector<std::tuple<std::string, std::string, std::string>> bar;
+	std::vector<std::tuple<std::string, std::string, std::string>> dru;
+	std::vector<std::tuple<std::string, std::string, std::string>> nec;
+	std::vector<std::tuple<std::string, std::string, std::string>> pal;
+	std::vector<std::tuple<std::string, std::string, std::string>> sor;
+	skillsGetPosData(skills, desc, "ama", ama);
+	skillsGetPosData(skills, desc, "ass", ass);
+	skillsGetPosData(skills, desc, "bar", bar);
+	skillsGetPosData(skills, desc, "dru", dru);
+	skillsGetPosData(skills, desc, "nec", nec);
+	skillsGetPosData(skills, desc, "pal", pal);
+	skillsGetPosData(skills, desc, "sor", sor);
+
+	size_t s_char = skills.colAt("charclass");
+	size_t s_level = skills.colAt("reqlevel");
+	skills.findRows(skills.colAt("maxlvl"), "20", skillRows);
+
+	for (size_t i = 0; i <= 30; i += 6)
+	{
+		levelRows = skillRows;
+		skills.filterRows(s_level, std::to_string(i > 0 ? i : 1), levelRows, FLT::Contains);
+		skills.getColValues(levelRows, s_char, values);
+		shuffle(skills, s_char, levelRows, values);
+	}
+
+	skillsFixPosData(skills, desc, "ama", ama);
+	skillsFixPosData(skills, desc, "ass", ass);
+	skillsFixPosData(skills, desc, "bar", bar);
+	skillsFixPosData(skills, desc, "dru", dru);
+	skillsFixPosData(skills, desc, "nec", nec);
+	skillsFixPosData(skills, desc, "pal", pal);
+	skillsFixPosData(skills, desc, "sor", sor);
+}
+
+void Randomizer::skillsGetPosData(Table &skills, Table &desc, const std::string &classCode,
+	std::vector<std::tuple<std::string, std::string, std::string>> &posData)
+{
+	size_t s_char = skills.colAt("charclass");
+	size_t s_skill = skills.colAt("skill");
+	size_t s_req = skills.colAt("reqskill1");
+	size_t s_desc = skills.colAt("skilldesc");
+	size_t d_desc = desc.colAt("skilldesc");
+	size_t d_pos = desc.colAt("SkillPage");
+	std::vector<size_t> posCols = {d_pos, d_pos + 1, d_pos + 2};
+
+	std::vector<size_t> classRows;
+	std::vector<size_t> descRows;
+	std::vector<std::string> values;
+
+	skills.findRows(s_char, classCode, classRows);
+	for (size_t i = 0; i < classRows.size(); i++)
+	{
+		std::tuple<std::string, std::string, std::string> entry;
+		std::get<0>(entry) = skills.at(classRows.at(i), s_skill);
+		std::get<1>(entry) = skills.at(classRows.at(i), s_req);
+		std::get<2>(entry) = skills.at(classRows.at(i), s_req + 1);
+
+		skills.findRows(s_skill, std::get<0>(entry), descRows);
+		skills.findRows(s_skill, std::get<1>(entry), descRows);
+		skills.findRows(s_skill, std::get<2>(entry), descRows);
+
+		std::get<0>(entry) = skills.at(descRows.at(0), s_desc);
+		std::get<1>(entry) = descRows.size() > 1 ? skills.at(descRows.at(1), s_desc) : "";
+		std::get<2>(entry) = descRows.size() > 2 ? skills.at(descRows.at(2), s_desc) : "";
+		descRows.clear();
+
+		desc.findRows(d_desc, std::get<0>(entry), descRows);
+		desc.findRows(d_desc, std::get<1>(entry), descRows);
+		desc.findRows(d_desc, std::get<2>(entry), descRows);
+		desc.getColValues(descRows, posCols, values);
+		descRows.clear();
+
+		std::get<0>(entry) = values.at(0);
+		std::get<1>(entry) = values.size() > 1 ? values.at(1) : "";
+		std::get<2>(entry) = values.size() > 2 ? values.at(2) : "";
+		values.clear();
+		posData.push_back(entry);
+	}
+}
+
+void Randomizer::skillsFixPosData(Table &skills, Table &desc, const std::string &classCode,
+	std::vector<std::tuple<std::string, std::string, std::string>> &posData)
+{
+	size_t s_char = skills.colAt("charclass");
+	size_t s_level = skills.colAt("reqlevel");
+	size_t s_desc = skills.colAt("skilldesc");
+	size_t s_skill = skills.colAt("skill");
+	size_t s_req = skills.colAt("reqskill1");
+	size_t d_desc = desc.colAt("skilldesc");
+	size_t d_pos = desc.colAt("SkillPage");
+	std::vector<size_t> posCols = {d_pos, d_pos + 1, d_pos + 2};
+
+	std::vector<size_t> skillRows;
+	std::vector<size_t> descRows;
+	std::vector<std::string> values;
+	std::vector<std::tuple<std::string, std::string, std::string>> rowPosData;
+	std::vector<std::string> posCopy;
+
+	for (size_t i = 0; i <= 30; i += 6)
+	{
+		skills.findRows(s_char, classCode, skillRows);
+		skills.filterRows(s_level, std::to_string(i > 0 ? i : 1), skillRows, FLT::Contains);
+		skills.getColValues(skillRows, s_desc, values);
+		for (size_t j = 0; j < values.size(); j++)
+		{
+			desc.findRows(d_desc, values.at(j), descRows);
+			rowPosData.push_back(*posData.begin());
+			posCopy.push_back(std::get<0>(*posData.begin()));
+			posData.erase(posData.begin());
+		}
+		skillRows.clear();
+		values.clear();
+
+		for (size_t j = 0; j < descRows.size(); j++)
+		{
+			size_t swapPos = rand() % descRows.size();
+			std::swap(rowPosData.at(j), rowPosData.at(swapPos));
+			std::swap(posCopy.at(j), posCopy.at(swapPos));
+		}
+		desc.importDelimited(posCols, descRows, posCopy);
+		posCopy.clear();
+
+		for (size_t j = 0; j < descRows.size(); j++)
+		{
+			skills.findRows(s_desc, desc.at(descRows.at(j), d_desc), skillRows);
+			skills.filterRows(s_char, classCode, skillRows, FLT::Contains);
+			std::get<0>(rowPosData.at(j)) = skills.at(skillRows.at(0), s_skill);
+			skillRows.clear();
+
+			std::vector<size_t> reqRows;
+			std::vector<std::string> reqValues;
+
+			std::stringstream position;
+			position.str(std::get<1>(rowPosData.at(j)));
+			if (position.str() != "")
+			{
+				std::string entry;
+				std::getline(position, entry, '\t');
+				desc.findRows(d_pos, entry, reqRows);
+
+				std::getline(position, entry, '\t');
+				desc.filterRows(d_pos + 1, entry, reqRows, FLT::Contains);
+
+				std::getline(position, entry, '\t');
+				desc.filterRows(d_pos + 2, entry, reqRows, FLT::Contains);
+
+				desc.getColValues(reqRows, d_desc, reqValues);
+				for (size_t k = 0; k < reqValues.size(); k++)
+				{
+					skills.findRows(s_desc, reqValues.at(k), skillRows);
+				}
+				skills.filterRows(s_char, classCode, skillRows, FLT::Contains);
+				std::get<1>(rowPosData.at(j)) = skills.at(skillRows.at(0), s_skill);
+				reqRows.clear();
+				reqValues.clear();
+				skillRows.clear();
+				position.clear();
+			}
+
+			position.str(std::get<2>(rowPosData.at(j)));
+			if (position.str() != "")
+			{
+				std::string entry;
+				std::getline(position, entry, '\t');
+				desc.findRows(d_pos, entry, reqRows);
+
+				std::getline(position, entry, '\t');
+				desc.filterRows(d_pos + 1, entry, reqRows, FLT::Contains);
+
+				std::getline(position, entry, '\t');
+				desc.filterRows(d_pos + 2, entry, reqRows, FLT::Contains);
+
+				desc.getColValues(reqRows, d_desc, reqValues);
+				for (size_t k = 0; k < reqValues.size(); k++)
+				{
+					skills.findRows(s_desc, reqValues.at(k), skillRows);
+				}
+				skills.filterRows(s_char, classCode, skillRows, FLT::Contains);
+				std::get<2>(rowPosData.at(j)) = skills.at(skillRows.at(0), s_skill);
+				reqRows.clear();
+				reqValues.clear();
+				skillRows.clear();
+				position.clear();
+			}
+
+			skills.findRows(s_skill, std::get<0>(rowPosData.at(j)), skillRows);
+			skills.at(skillRows.at(0), s_req) = std::get<1>(rowPosData.at(j));
+			skills.at(skillRows.at(0), s_req + 1) = std::get<2>(rowPosData.at(j));
+			skillRows.clear();
+		}
+		descRows.clear();
+		rowPosData.clear();
 	}
 }
 

@@ -95,6 +95,10 @@ Enable to randomize properties for gems and runes.
 true/false (Default=false)
 Enable to randomize the items vendors keep in stock.
 
+	rand_charskills
+true/false (Default=false)
+Enable to randomize skills available to each character.
+
 --------------------------------------------------
  External
 --------------------------------------------------

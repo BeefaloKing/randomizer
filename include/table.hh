@@ -37,6 +37,9 @@ public:
 		std::vector<std::string> &values);
 	void print(std::iostream &out);
 
+	void importDelimited(const std::vector<size_t> &cols, const std::vector<size_t> &rows,
+		const std::vector<std::string> &values);
+
 	std::string &at(size_t row, size_t col);
 	inline const size_t &rows()
 	{
