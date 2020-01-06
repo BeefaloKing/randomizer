@@ -23,12 +23,15 @@ namespace File
 		Armor,
 		Gems,
 		Misc,
+		Skills,
+		SkillDesc,
 		TOTAL_FILES
 	};
 }
 static const std::string FILE_NAME[File::TOTAL_FILES] = {"MonPreset.txt", "Levels.txt",
 	"monstats2.txt", "UniqueItems.txt", "MagicPrefix.txt", "MagicSuffix.txt", "SetItems.txt",
-	"sets.txt", "ItemTypes.txt", "weapons.txt", "armor.txt", "gems.txt", "misc.txt"};
+	"sets.txt", "ItemTypes.txt", "weapons.txt", "armor.txt", "gems.txt", "misc.txt", "Skills.txt",
+	"skilldesc.txt"};
 
 class Randomizer
 {
@@ -70,6 +73,16 @@ private:
 	void gems();
 	void shops();
 	void shopHelper(Table &file, std::vector<size_t> rows);
+
+	void skills();
+	void skillsGetPosData(Table &skills, Table &desc, const std::string &classCode,
+		std::vector<std::tuple<std::string, std::string, std::string>> &posData);
+	void skillsFixPosData(Table &skills, Table &desc, const std::string &classCode,
+		std::vector<std::tuple<std::string, std::string, std::string>> &posData);
+	void skillsFixSyn(Table &skills, Table &desc, const std::string &classCode);
+	void skillsSynHelper(const std::string &calcCopy, std::string &calcValue,
+		const std::string &syn, const std::string &skill);
+	void skillsFixIcon(Table &skills, Table &desc, const std::string &classCode);
 
 	// Shuffle removes values it uses from both rows and values
 	// If you'd like randomization with replacement, use fillStrings instead

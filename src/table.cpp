@@ -262,6 +262,21 @@ void Table::print(std::iostream &out)
 	}
 }
 
+void Table::importDelimited(const std::vector<size_t> &cols, const std::vector<size_t> &rows,
+	const std::vector<std::string> &values)
+{
+	for (size_t i = 0; i < rows.size(); i++)
+	{
+		std::stringstream entries{values.at(i)};
+		std::string entry;
+		for (size_t j = 0; j < cols.size(); j++)
+		{
+			std::getline(entries, entry, '\t');
+			at(rows.at(i), cols.at(j)) = entry;
+		}
+	}
+}
+
 std::string &Table::at(size_t row, size_t col)
 {
 	if (row < numRows && col < numCols)
