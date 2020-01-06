@@ -1312,24 +1312,18 @@ void Randomizer::skills()
 	std::vector<size_t> levelRows;
 	std::vector<std::string> values;
 
-	std::vector<std::tuple<std::string, std::string, std::string>> ama;
-	std::vector<std::tuple<std::string, std::string, std::string>> ass;
-	std::vector<std::tuple<std::string, std::string, std::string>> bar;
-	std::vector<std::tuple<std::string, std::string, std::string>> dru;
-	std::vector<std::tuple<std::string, std::string, std::string>> nec;
-	std::vector<std::tuple<std::string, std::string, std::string>> pal;
-	std::vector<std::tuple<std::string, std::string, std::string>> sor;
-	skillsGetPosData(skills, desc, "ama", ama);
-	skillsGetPosData(skills, desc, "ass", ass);
-	skillsGetPosData(skills, desc, "bar", bar);
-	skillsGetPosData(skills, desc, "dru", dru);
-	skillsGetPosData(skills, desc, "nec", nec);
-	skillsGetPosData(skills, desc, "pal", pal);
-	skillsGetPosData(skills, desc, "sor", sor);
+	std::vector<std::string> classCodes = {"ama", "ass", "bar", "dru", "nec", "pal", "sor"};
+	std::vector<std::tuple<std::string, std::string, std::string>> classPosData[7];
+
+	for (size_t i = 0; i < classCodes.size(); i++)
+	{
+		skillsGetPosData(skills, desc, classCodes.at(i), classPosData[i]);
+	}
 
 	size_t s_char = skills.colAt("charclass");
 	size_t s_level = skills.colAt("reqlevel");
-	skills.findRows(skills.colAt("maxlvl"), "20", skillRows);
+	size_t s_max = skills.colAt("maxlvl");
+	skills.findRows(s_max, "20", skillRows);
 
 	for (size_t i = 0; i <= 30; i += 6)
 	{
@@ -1338,31 +1332,42 @@ void Randomizer::skills()
 		skills.getColValues(levelRows, s_char, values);
 		shuffle(skills, s_char, levelRows, values);
 	}
+	skillRows.clear();
 
-	skillsFixPosData(skills, desc, "ama", ama);
-	skillsFixPosData(skills, desc, "ass", ass);
-	skillsFixPosData(skills, desc, "bar", bar);
-	skillsFixPosData(skills, desc, "dru", dru);
-	skillsFixPosData(skills, desc, "nec", nec);
-	skillsFixPosData(skills, desc, "pal", pal);
-	skillsFixPosData(skills, desc, "sor", sor);
+	for (size_t i = 0; i < classCodes.size(); i++)
+	{
+		skillsFixPosData(skills, desc, classCodes.at(i), classPosData[i]);
+	}
 
-	// Ever heard of a loop?
-	skillsFixSyn(skills, desc, "ama");
-	skillsFixSyn(skills, desc, "ass");
-	skillsFixSyn(skills, desc, "bar");
-	skillsFixSyn(skills, desc, "dru");
-	skillsFixSyn(skills, desc, "nec");
-	skillsFixSyn(skills, desc, "pal");
-	skillsFixSyn(skills, desc, "sor");
+	for (size_t i = 0; i < classCodes.size(); i++)
+	{
+		skillsFixSyn(skills, desc, classCodes.at(i));
+	}
 
-	skillsFixIcon(skills, desc, "ama");
-	skillsFixIcon(skills, desc, "ass");
-	skillsFixIcon(skills, desc, "bar");
-	skillsFixIcon(skills, desc, "dru");
-	skillsFixIcon(skills, desc, "nec");
-	skillsFixIcon(skills, desc, "pal");
-	skillsFixIcon(skills, desc, "sor");
+	for (size_t i = 0; i < classCodes.size(); i++)
+	{
+		skillsFixIcon(skills, desc, classCodes.at(i));
+	}
+
+	std::vector<size_t> allColumns; // Should probably overload getColValues() to grab all columns
+	for (size_t i = 0; i < skills.cols(); i++)
+	{
+		allColumns.push_back(i);
+	}
+
+	for (size_t i = 0; i < classCodes.size(); i++)
+	{
+		skills.findRows(s_char, classCodes.at(i), skillRows);
+		for (size_t j = 0; j <= 30; j += 6)
+		{
+			levelRows = skillRows;
+			skills.filterRows(s_level, std::to_string(j > 0 ? j : 1), levelRows, FLT::Contains);
+			skills.getColValues(levelRows, allColumns, values);
+		}
+		skillRows.clear();
+	}
+	skills.findRows(s_max, "20", skillRows);
+	skills.importDelimited(allColumns, skillRows, values);
 }
 
 void Randomizer::skillsGetPosData(Table &skills, Table &desc, const std::string &classCode,
