@@ -18,7 +18,7 @@
 // If you want to write something similar please don't hold this code up on a pedestal.
 // Thank you.
 
-static const char* VERSION = "0.1";
+static const char* VERSION = "1.0";
 
 // Should probably move/clean up everything to do with managing the install
 // Clear up all these globals
