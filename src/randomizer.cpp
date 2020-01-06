@@ -1355,6 +1355,14 @@ void Randomizer::skills()
 	skillsFixSyn(skills, desc, "nec");
 	skillsFixSyn(skills, desc, "pal");
 	skillsFixSyn(skills, desc, "sor");
+
+	skillsFixIcon(skills, desc, "ama");
+	skillsFixIcon(skills, desc, "ass");
+	skillsFixIcon(skills, desc, "bar");
+	skillsFixIcon(skills, desc, "dru");
+	skillsFixIcon(skills, desc, "nec");
+	skillsFixIcon(skills, desc, "pal");
+	skillsFixIcon(skills, desc, "sor");
 }
 
 void Randomizer::skillsGetPosData(Table &skills, Table &desc, const std::string &classCode,
@@ -1640,6 +1648,32 @@ void Randomizer::skillsSynHelper(const std::string &calcCopy, std::string &calcV
 	{
 		calcValue = skill;
 	}
+}
+
+void Randomizer::skillsFixIcon(Table &skills, Table &desc, const std::string &classCode)
+{
+	size_t s_class = skills.colAt("charclass");
+	size_t s_desc = skills.colAt("skilldesc");
+	size_t d_desc = desc.colAt("skilldesc");
+	size_t d_icon = desc.colAt("IconCel");
+
+	std::vector<size_t> skillRows;
+	std::vector<size_t> descRows;
+	std::vector<std::string> values;
+
+	skills.findRows(s_class, classCode, skillRows);
+	skills.getColValues(skillRows, s_desc, values);
+	for (size_t i = 0; i < values.size(); i++)
+	{
+		desc.findRows(d_desc, values.at(i), descRows);
+	}
+	values.clear();
+
+	for (size_t i = 0; i < 30; i++)
+	{
+		values.push_back(std::to_string(i * 2));
+	}
+	shuffle(desc, d_icon, descRows, values);
 }
 
 void Randomizer::shuffle(Table &file, size_t col, std::vector<size_t> &rows,
