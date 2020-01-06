@@ -1346,6 +1346,15 @@ void Randomizer::skills()
 	skillsFixPosData(skills, desc, "nec", nec);
 	skillsFixPosData(skills, desc, "pal", pal);
 	skillsFixPosData(skills, desc, "sor", sor);
+
+	// Ever heard of a loop?
+	skillsFixSyn(skills, desc, "ama");
+	skillsFixSyn(skills, desc, "ass");
+	skillsFixSyn(skills, desc, "bar");
+	skillsFixSyn(skills, desc, "dru");
+	skillsFixSyn(skills, desc, "nec");
+	skillsFixSyn(skills, desc, "pal");
+	skillsFixSyn(skills, desc, "sor");
 }
 
 void Randomizer::skillsGetPosData(Table &skills, Table &desc, const std::string &classCode,
@@ -1506,6 +1515,130 @@ void Randomizer::skillsFixPosData(Table &skills, Table &desc, const std::string 
 		}
 		descRows.clear();
 		rowPosData.clear();
+	}
+}
+
+void Randomizer::skillsFixSyn(Table &skills, Table &desc, const std::string &classCode)
+{
+	size_t s_class = skills.colAt("charclass");
+	size_t s_desc = skills.colAt("skilldesc");
+	size_t s_skill = skills.colAt("skill");
+	size_t d_desc = desc.colAt("skilldesc");
+	size_t d_text = desc.colAt("dsc3texta2");
+	size_t d_name = desc.colAt("str name");
+
+	std::vector<size_t> rows;
+
+	std::vector<std::string> calcHeaders = {"prgcalc1", "prgcalc2", "prgcalc3", "auralencalc",
+	"aurarangecalc", "aurastatcalc1", "aurastatcalc2", "aurastatcalc3", "aurastatcalc4",
+	"aurastatcalc5", "aurastatcalc6", "passivecalc1", "passivecalc2", "passivecalc3",
+	"passivecalc4", "passivecalc5", "sumskill1", "sumsk1calc", "sumskill2", "sumsk2calc",
+	"sumskill3", "sumsk3calc", "sumskill4", "sumsk4calc", "sumskill5", "sumsk5calc", "calc1",
+	"calc2", "calc3", "calc4", "ToHitCalc", "DmgSymPerCalc", "EDmgSymPerCalc", "ELenSymPerCalc"};
+	std::vector<std::string> dCalcHeaders = {"desccalca1", "desccalcb1", "desccalca2",
+	"desccalcb2", "desccalca3", "desccalcb3", "desccalca4", "desccalcb4", "desccalca5",
+	"desccalcb5", "desccalca6", "desccalcb6", "dsc2calca1", "dsc2calcb1", "dsc2calca2",
+	"dsc2calcb2", "dsc2calca3", "dsc2calcb3", "dsc2calca4", "dsc2calcb4", "dsc3calca1",
+	"dsc3calcb1", "dsc3calca2", "dsc3calcb2", "dsc3calca3", "dsc3calcb3", "dsc3calca4",
+	"dsc3calcb4", "dsc3calca5", "dsc3calcb5", "dsc3calca6", "dsc3calcb6", "dsc3calca7",
+	"dsc3calcb7"};
+	std::vector<size_t> calcCols;
+	std::vector<size_t> dCalcCols;
+	for (size_t i = 0; i < calcHeaders.size(); i++)
+	{
+		calcCols.push_back(skills.colAt(calcHeaders.at(i)));
+	}
+	for (size_t i = 0; i < dCalcHeaders.size(); i++)
+	{
+		dCalcCols.push_back(desc.colAt(dCalcHeaders.at(i)));
+	}
+
+	skills.findRows(s_class, classCode, rows);
+
+	Table skillsCopy = skills;
+	Table descCopy = desc;
+	for (size_t i = 0; i < rows.size(); i++)
+	{
+		size_t row = rows.at(i);
+		std::vector<size_t> descRows;
+		std::vector<size_t> skillRows;
+
+		desc.findRows(d_desc, skills.at(row, s_desc), descRows);
+
+		for (size_t j = 0; j < 6; j++)
+		{
+			size_t textCol = d_text + (j * 5);
+			std::string synName = desc.at(descRows.at(0), textCol);
+			if (synName == "")
+			{
+				break; // No more synergies (or none to begin with)
+			}
+			else if (synName.back() == '*') // Synergy is a duplicate
+			{
+				desc.at(descRows.at(0), textCol).pop_back(); // Remove '*'
+				continue; // Do not process
+			}
+
+			desc.findRows(d_name, synName, skillRows);
+			std::string synDesc = desc.at(skillRows.at(0), d_desc);
+			skillRows.clear();
+
+			skills.findRows(s_desc, synDesc, skillRows);
+			std::string syn = skills.at(skillRows.at(0), s_skill);
+			skillRows.clear();
+
+			size_t randSkill = rows.at(rand() % rows.size());
+			std::string skill = skills.at(randSkill, s_skill);
+			std::string skillDesc = skills.at(randSkill, s_desc);
+			desc.findRows(d_desc, skillDesc, skillRows);
+			std::string skillName = desc.at(skillRows.at(0), d_name);
+			skillRows.clear();
+
+			for (size_t k = 0; k < calcCols.size(); k++)
+			{
+				const std::string &calcCopy = skillsCopy.at(row, calcCols.at(k));
+				std::string &calcValue = skills.at(row, calcCols.at(k));
+
+				skillsSynHelper(calcCopy, calcValue, syn, skill);
+			}
+
+			for (size_t k = 0; k < dCalcCols.size(); k++)
+			{
+				const std::string &calcCopy = descCopy.at(descRows.at(0), dCalcCols.at(k));
+				std::string &calcValue = desc.at(descRows.at(0), dCalcCols.at(k));
+
+				skillsSynHelper(calcCopy, calcValue, syn, skill);
+			}
+
+			// Check for duplicate synergies (e.g. Frozen Armor)
+			for (size_t k = j + 1; k < 6; k++)
+			{
+				size_t dupeCol = d_text + (k * 5);
+				if (desc.at(descRows.at(0), textCol) == desc.at(descRows.at(0), dupeCol))
+				{
+					// Mark duplicate synergies with '*'
+					desc.at(descRows.at(0), dupeCol) = skillName + "*";
+				}
+			}
+			desc.at(descRows.at(0), textCol) = skillName;
+		}
+	}
+}
+
+void Randomizer::skillsSynHelper(const std::string &calcCopy, std::string &calcValue,
+	const std::string &syn, const std::string &skill)
+{
+	std::string safeSyn = '\'' + syn + '\'';
+	size_t pos = calcCopy.find(safeSyn);
+	if (pos != std::string::npos)
+	{
+		std::string safeSkill = '\'' + skill + '\'';
+		pos = calcValue.find(safeSyn);
+		calcValue.replace(pos, safeSyn.length(), safeSkill);
+	}
+	else if (calcCopy == syn)
+	{
+		calcValue = skill;
 	}
 }
 

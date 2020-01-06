@@ -79,6 +79,9 @@ private:
 		std::vector<std::tuple<std::string, std::string, std::string>> &posData);
 	void skillsFixPosData(Table &skills, Table &desc, const std::string &classCode,
 		std::vector<std::tuple<std::string, std::string, std::string>> &posData);
+	void skillsFixSyn(Table &skills, Table &desc, const std::string &classCode);
+	void skillsSynHelper(const std::string &calcCopy, std::string &calcValue,
+		const std::string &syn, const std::string &skill);
 
 	// Shuffle removes values it uses from both rows and values
 	// If you'd like randomization with replacement, use fillStrings instead
