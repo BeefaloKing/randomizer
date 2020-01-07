@@ -1002,44 +1002,39 @@ void Randomizer::items()
 
 	// Armor Properties
 	Table &armor = newFiles[File::Armor];
+	size_t col = armor.colAt("spawnable");
 	std::vector<size_t> current;
-	size_t col;
 
 	armor.findMatchRows(armor.colAt("code"), armor.colAt("normcode"), current);
-	col = armor.colAt("spawnable");
 	armor.filterRows(col, "1", current, FLT::Contains);
 	armorHelper(armor, current);
 	current.clear();
 
 	armor.findMatchRows(armor.colAt("code"), armor.colAt("ubercode"), current);
-	col = armor.colAt("spawnable");
 	armor.filterRows(col, "1", current, FLT::Contains);
 	armorHelper(armor, current);
 	current.clear();
 
 	armor.findMatchRows(armor.colAt("code"), armor.colAt("ultracode"), current);
-	col = armor.colAt("spawnable");
 	armor.filterRows(col, "1", current, FLT::Contains);
 	armorHelper(armor, current);
 	current.clear();
 
 	// Weapon Properties
 	Table &weapons = newFiles[File::Weapons];
+	col = weapons.colAt("spawnable");
 
 	weapons.findMatchRows(weapons.colAt("code"), weapons.colAt("normcode"), current);
-	col = weapons.colAt("spawnable");
 	weapons.filterRows(col, "1", current, FLT::Contains);
 	weaponHelper(weapons, current);
 	current.clear();
 
 	weapons.findMatchRows(weapons.colAt("code"), weapons.colAt("ubercode"), current);
-	col = weapons.colAt("spawnable");
 	weapons.filterRows(col, "1", current, FLT::Contains);
 	weaponHelper(weapons, current);
 	current.clear();
 
 	weapons.findMatchRows(weapons.colAt("code"), weapons.colAt("ultracode"), current);
-	col = weapons.colAt("spawnable");
 	weapons.filterRows(col, "1", current, FLT::Contains);
 	weaponHelper(weapons, current);
 	current.clear();
@@ -1136,19 +1131,19 @@ void Randomizer::weaponHelper(Table &file, std::vector<size_t> rows)
 	cols.assign({file.colAt("mindam"), file.colAt("maxdam")});
 	file.filterRows(cols[0], "", rowCopy, FLT::NotContains);
 	file.getColValues(rowCopy, cols, values);
-	shuffle(file, cols, rows, values);
+	shuffle(file, cols, rowCopy, values);
 
 	rowCopy = rows;
 	cols.assign({file.colAt("2handmindam"), file.colAt("2handmaxdam")});
 	file.filterRows(cols[0], "", rowCopy, FLT::NotContains);
 	file.getColValues(rowCopy, cols, values);
-	shuffle(file, cols, rows, values);
+	shuffle(file, cols, rowCopy, values);
 
 	rowCopy = rows;
 	cols.assign({file.colAt("minmisdam"), file.colAt("maxmisdam")});
 	file.filterRows(cols[0], "", rowCopy, FLT::NotContains);
 	file.getColValues(rowCopy, cols, values);
-	shuffle(file, cols, rows, values);
+	shuffle(file, cols, rowCopy, values);
 
 	rowCopy = rows;
 	size_t col = file.colAt("gemsockets");
